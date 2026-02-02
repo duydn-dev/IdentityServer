@@ -20,7 +20,6 @@ global using IdentityServer4.Extensions;
 global using IdentityServer4.Models;
 global using IdentityServer4.Services;
 global using IdentityServer4.Stores;
-global using IdentityServer4.Test;
 global using IdentityServer4.Validation;
 global using IdentityServerHost.Quickstart.UI;
 global using Microsoft.AspNetCore.Authentication;

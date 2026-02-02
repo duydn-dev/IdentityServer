@@ -23,7 +23,7 @@ namespace IdentityServerHost.SeedDatas
                 var alice = await userMgr.FindByNameAsync("admin");
                 if (alice == null)
                 {
-                    alice = new IdentityServerHost.Models.ApplicationUser
+                    alice = new Models.ApplicationUser
                     {
                         UserName = "admin"
                     };

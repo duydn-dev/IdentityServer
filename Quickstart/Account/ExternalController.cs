@@ -12,29 +12,31 @@
  copies or substantial portions of the Software.
 */
 
+using IdentityServerHost.Models;
+
 namespace IdentityServerHost.Quickstart.UI;
 
 [SecurityHeaders]
 [AllowAnonymous]
 public class ExternalController : Controller
 {
-        private readonly TestUserStore _users;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IIdentityServerInteractionService _interaction;
         private readonly IClientStore _clientStore;
         private readonly ILogger<ExternalController> _logger;
         private readonly IEventService _events;
 
         public ExternalController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             IIdentityServerInteractionService interaction,
             IClientStore clientStore,
             IEventService events,
-            ILogger<ExternalController> logger,
-            TestUserStore users = null)
+            ILogger<ExternalController> logger)
         {
-            // if the TestUserStore is not in DI, then we'll just use the global users collection
-            // this is where you would plug in your own custom identity management library (e.g. ASP.NET Identity)
-            _users = users ?? new TestUserStore(TestUsers.Users);
-
+            _userManager = userManager;
+            _signInManager = signInManager;
             _interaction = interaction;
             _clientStore = clientStore;
             _logger = logger;
@@ -91,13 +93,13 @@ public class ExternalController : Controller
             }
 
             // lookup our user and external provider info
-            var (user, provider, providerUserId, claims) = FindUserFromExternalProvider(result);
+            var (user, provider, providerUserId, claims) = await FindUserFromExternalProviderAsync(result);
             if (user == null)
             {
                 // this might be where you might initiate a custom workflow for user registration
                 // in this sample we don't show how that would be done, as our sample implementation
                 // simply auto-provisions new external user
-                user = AutoProvisionUser(provider, providerUserId, claims);
+                user = await AutoProvisionUserAsync(provider, providerUserId, claims);
             }
 
             // this allows us to collect any additional claims or properties
@@ -108,9 +110,9 @@ public class ExternalController : Controller
             ProcessLoginCallback(result, additionalLocalClaims, localSignInProps);
             
             // issue authentication cookie for user
-            var isuser = new IdentityServerUser(user.SubjectId)
+            var isuser = new IdentityServerUser(user.Id.ToString())
             {
-                DisplayName = user.Username,
+                DisplayName = user.UserName,
                 IdentityProvider = provider,
                 AdditionalClaims = additionalLocalClaims
             };
@@ -125,7 +127,7 @@ public class ExternalController : Controller
 
             // check if external login is in the context of an OIDC request
             var context = await _interaction.GetAuthorizationContextAsync(returnUrl);
-            await _events.RaiseAsync(new UserLoginSuccessEvent(provider, providerUserId, user.SubjectId, user.Username, true, context?.Client.ClientId));
+            await _events.RaiseAsync(new UserLoginSuccessEvent(provider, providerUserId, user.Id.ToString(), user.UserName!, true, context?.Client.ClientId));
 
             if (context != null)
             {
@@ -140,33 +142,59 @@ public class ExternalController : Controller
             return Redirect(returnUrl);
         }
 
-        private (TestUser user, string provider, string providerUserId, IEnumerable<Claim> claims) FindUserFromExternalProvider(AuthenticateResult result)
+        private async Task<(ApplicationUser? user, string provider, string providerUserId, IEnumerable<Claim> claims)> FindUserFromExternalProviderAsync(AuthenticateResult result)
         {
             var externalUser = result.Principal;
 
             // try to determine the unique id of the external user (issued by the provider)
             // the most common claim type for that are the sub claim and the NameIdentifier
             // depending on the external provider, some other claim type might be used
-            var userIdClaim = externalUser.FindFirst(JwtClaimTypes.Subject) ??
-                              externalUser.FindFirst(ClaimTypes.NameIdentifier) ??
+            var userIdClaim = externalUser?.FindFirst(JwtClaimTypes.Subject) ??
+                              externalUser?.FindFirst(ClaimTypes.NameIdentifier) ??
                               throw new Exception("Unknown userid");
 
             // remove the user id claim so we don't include it as an extra claim if/when we provision the user
-            var claims = externalUser.Claims.ToList();
+            var claims = externalUser!.Claims.ToList();
             claims.Remove(userIdClaim);
 
-            var provider = result.Properties.Items["scheme"];
+            var provider = result.Properties!.Items["scheme"]!;
             var providerUserId = userIdClaim.Value;
 
-            // find external user
-            var user = _users.FindByExternalProvider(provider, providerUserId);
+            // find user by external login (ASP.NET Identity)
+            var user = await _userManager.FindByLoginAsync(provider, providerUserId);
 
             return (user, provider, providerUserId, claims);
         }
 
-        private TestUser AutoProvisionUser(string provider, string providerUserId, IEnumerable<Claim> claims)
+        private async Task<ApplicationUser> AutoProvisionUserAsync(string provider, string providerUserId, IEnumerable<Claim> claims)
         {
-            var user = _users.AutoProvisionUser(provider, providerUserId, claims.ToList());
+            var email = claims.FirstOrDefault(x => x.Type == JwtClaimTypes.Email || x.Type == ClaimTypes.Email)?.Value;
+            var name = claims.FirstOrDefault(x => x.Type == JwtClaimTypes.Name || x.Type == ClaimTypes.Name)?.Value
+                ?? claims.FirstOrDefault(x => x.Type == JwtClaimTypes.GivenName)?.Value;
+
+            var userName = email ?? name ?? $"{provider}_{providerUserId}";
+            // ensure username is unique
+            var existingUser = await _userManager.FindByNameAsync(userName);
+            if (existingUser != null)
+            {
+                userName = $"{userName}_{providerUserId}";
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = userName,
+                Email = email,
+                EmailConfirmed = !string.IsNullOrEmpty(email)
+            };
+
+            var result = await _userManager.CreateAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new Exception(result.Errors.First().Description);
+            }
+
+            await _userManager.AddLoginAsync(user, new UserLoginInfo(provider, providerUserId, provider));
+
             return user;
         }
 

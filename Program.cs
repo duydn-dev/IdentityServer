@@ -1,4 +1,4 @@
-﻿/*
+/*
  Copyright (c) 2024 Iamshen . All rights reserved.
 
  Copyright (c) 2024 HigginsSoft, Alexander Higgins - https://github.com/alexhiggins732/ 
@@ -70,22 +70,24 @@ try
 
         options.EmitScopesAsSpaceDelimitedStringInJwt = true;
 
-        options.MutualTls.Enabled = true;
-        options.MutualTls.DomainName = "mtls";
+        // options.MutualTls.Enabled = true;
+        // options.MutualTls.DomainName = "mtls";
     })
         .AddDeveloperSigningCredential()
         .AddConfigurationStore(options =>
         {
-            options.ConfigureDbContext = builder => builder.UseNpgsql(connectionString);
+            options.ConfigureDbContext = builder => builder.UseNpgsql(connectionString,
+                sql => sql.MigrationsAssembly("IdentityServerHost"));
         })
         .AddOperationalStore(options =>
         {
-            options.ConfigureDbContext = builder => builder.UseNpgsql(connectionString);
+            options.ConfigureDbContext = builder => builder.UseNpgsql(connectionString,
+                sql => sql.MigrationsAssembly("IdentityServerHost"));
             options.EnableTokenCleanup = true;
             options.TokenCleanupInterval = 5;
         })
         .AddJwtBearerClientAuthentication()
-        .AddMutualTlsSecretValidators()
+        // .AddMutualTlsSecretValidators()
         .AddConfigurationStoreCache()
         .AddAspNetIdentity<ApplicationUser>();
 
@@ -115,7 +117,11 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Host terminated unexpectedly.");
+    // HostAbortedException thường xảy ra khi chạy dotnet ef (migrations) - EF tools build host rồi abort ngay, đây là hành vi bình thường
+    if (ex is not Microsoft.Extensions.Hosting.HostAbortedException)
+    {
+        Log.Fatal(ex, "Host terminated unexpectedly.");
+    }
 }
 finally
 {
