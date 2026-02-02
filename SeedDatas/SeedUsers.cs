@@ -27,7 +27,7 @@ namespace IdentityServerHost.SeedDatas
                     {
                         UserName = "admin"
                     };
-                    var result = await userMgr.CreateAsync(alice, "Matkhau@123");
+                    var result = await userMgr.CreateAsync(alice, "Duy12345@");
                     if (!result.Succeeded)
                     {
                         throw new Exception(result.Errors.First().Description);

@@ -13,6 +13,7 @@
 */
 
 using IdentityServerHost.Data;
+using IdentityServerHost.Extentions;
 using IdentityServerHost.Models;
 using IdentityServerHost.SeedDatas;
 using Microsoft.AspNetCore.Identity;
@@ -59,7 +60,7 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-    builder.Services.AddControllersWithViews();
+    builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
     builder.Services.AddIdentityServer(options =>
     {
@@ -70,8 +71,9 @@ try
 
         options.EmitScopesAsSpaceDelimitedStringInJwt = true;
 
-        // options.MutualTls.Enabled = true;
-        // options.MutualTls.DomainName = "mtls";
+        options.MutualTls.Enabled = true;
+        options.MutualTls.DomainName = "mtls";
+        options.Csp.Level = CspLevel.Two;
     })
         .AddDeveloperSigningCredential()
         .AddConfigurationStore(options =>
@@ -87,7 +89,7 @@ try
             options.TokenCleanupInterval = 5;
         })
         .AddJwtBearerClientAuthentication()
-        // .AddMutualTlsSecretValidators()
+        .AddMutualTlsSecretValidators()
         .AddConfigurationStoreCache()
         .AddAspNetIdentity<ApplicationUser>();
 
@@ -103,6 +105,7 @@ try
 
     app.UseRouting();
 
+    app.ConfigureCspAllowHeaders();
     // Seed users and apply migrations at startup
     await SeedClients.StartSeedAsync(app.Services);
     await SeedUsers.StartSeedAsync(app.Services);
