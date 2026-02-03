@@ -13,7 +13,6 @@
 */
 
 using IdentityServerHost.Data;
-using IdentityServerHost.HealthChecks;
 using IdentityServerHost.Extentions;
 using IdentityServerHost.Middleware;
 using IdentityServerHost.Models;
@@ -27,12 +26,10 @@ using IdentityServerHost.Services.Alerting;
 using IdentityServerHost.Services.Operational;
 using IdentityServerHost.Services.Sessions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using StackExchange.Redis;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 Console.Title = "DTI Identity Server";
@@ -95,23 +92,14 @@ try
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped<IAuditService, AuditService>();
     builder.Services.AddScoped<ISessionService, SessionService>();
-    builder.Services.AddScoped<IPersistedGrantService, PersistedGrantService>();
+    builder.Services.AddScoped<IdentityServerHost.Services.Operational.IPersistedGrantService, PersistedGrantService>();
     builder.Services.AddScoped<IDeviceCodeService, DeviceCodeService>();
     builder.Services.AddSingleton<ILdapService, LdapService>();
     builder.Services.AddSingleton<IAlertService, AlertService>();
-    builder.Services.AddTransient<IdentityServer4.Events.IEventSink, IdentityServerEventSink>();
+    builder.Services.AddTransient<IEventSink, IdentityServerEventSink>();
 
-    builder.Services.AddRateLimiting(options =>
-    {
-        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-            RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
-        options.OnRejected = async (ctx, _) =>
-        {
-            ctx.HttpContext.Response.StatusCode = 429;
-            await ctx.HttpContext.Response.WriteAsync("Too many requests.");
-        };
-    });
+    // Rate Limiting: Add package Microsoft.AspNetCore.RateLimiting hoặc dùng .NET 9 SDK có sẵn
+    // builder.Services.AddRateLimiting(options => { ... });
 
     var healthChecks = builder.Services.AddHealthChecks()
         .AddNpgSql(connectionString, name: "database")
@@ -121,7 +109,7 @@ try
     {
         builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
         builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
-        healthChecks.AddCheck("redis", new RedisHealthCheck(redisConnection));
+        healthChecks.AddRedis(redisConnection, name: "redis");
     }
 
     builder.Services.AddScoped<IClientConfigService, ClientConfigService>();
@@ -185,7 +173,7 @@ try
     app.UseRouting();
 
     app.UseIpWhitelist();
-    app.UseRateLimiting();
+    // app.UseRateLimiting(); // Bật lại khi có AddRateLimiting
     app.ConfigureCspAllowHeaders();
 
     app.MapHealthChecks("/health");

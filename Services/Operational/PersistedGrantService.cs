@@ -13,7 +13,7 @@ public class PersistedGrantService : IPersistedGrantService
         _db = db;
     }
 
-    public async Task<(IEnumerable<PersistedGrant> Items, int Total)> GetPagedAsync(int page, int pageSize, string? subjectId, string? clientId, string? type)
+    public async Task<(IEnumerable<IdentityServer4.EntityFramework.Entities.PersistedGrant> Items, int Total)> GetPagedAsync(int page, int pageSize, string? subjectId, string? clientId, string? type)
     {
         var query = _db.PersistedGrants.AsNoTracking();
 

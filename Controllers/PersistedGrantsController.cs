@@ -9,10 +9,10 @@ namespace IdentityServerHost.Controllers;
 [SecurityHeaders]
 public class PersistedGrantsController : Controller
 {
-    private readonly IPersistedGrantService _service;
+    private readonly IdentityServerHost.Services.Operational.IPersistedGrantService _service;
     private readonly IAuditService _audit;
 
-    public PersistedGrantsController(IPersistedGrantService service, IAuditService audit)
+    public PersistedGrantsController(IdentityServerHost.Services.Operational.IPersistedGrantService service, IAuditService audit)
     {
         _service = service;
         _audit = audit;

@@ -64,8 +64,8 @@
                                 <td>@d.UserCode</td>
                                 <td>@d.ClientId</td>
                                 <td>@(d.SubjectId ?? "-")</td>
-                                <td>@d.CreationTime.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td>@d.Expiration.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(d.CreationTime.ToString("yyyy-MM-dd HH:mm"))</td>
+                                <td>@(d.Expiration?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
                                 <td class="text-end">
                                     <form asp-action="Remove" method="post" class="d-inline" onsubmit="return confirm('Xóa device code này?');">
                                         <input type="hidden" name="userCode" value="@d.UserCode" />

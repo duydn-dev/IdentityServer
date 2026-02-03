@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -29,12 +29,10 @@
     <PackageReference Include="Reborn.IdentityServer4.EntityFramework.Storage" Version="9.0.0" />
     <PackageReference Include="Reborn.IdentityServer4.Security" Version="9.0.0" />
     <PackageReference Include="Reborn.IdentityServer4.Storage" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.NpgSql" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Redis" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.UI.Client" Version="8.0.1" />
-    <PackageReference Include="Novell.Directory.Ldap" Version="3.6.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.8.0" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.8.0-beta.1" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.8.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.8.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.8.0" />
@@ -43,6 +41,8 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.0" />
   </ItemGroup>
 
 </Project>

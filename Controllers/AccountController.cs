@@ -118,8 +118,8 @@ public class AccountController : Controller
                         if (!createResult.Succeeded)
                         {
                             ModelState.AddModelError(string.Empty, "Không thể tạo tài khoản từ LDAP.");
-                            var vm = await BuildLoginViewModelAsync(model);
-                            return View(vm);
+                            var loginVm = await BuildLoginViewModelAsync(model);
+                            return View(loginVm);
                         }
                     }
                     isLdapUser = true;
@@ -135,8 +135,8 @@ public class AccountController : Controller
                 if (AccountOptions.RequireMfa && !user.TwoFactorEnabled)
                 {
                     ModelState.AddModelError(string.Empty, "MFA bắt buộc. Vui lòng liên hệ quản trị viên để kích hoạt xác thực hai yếu tố cho tài khoản của bạn.");
-                    var vm = await BuildLoginViewModelAsync(model);
-                    return View(vm);
+                    var loginVm = await BuildLoginViewModelAsync(model);
+                    return View(loginVm);
                 }
 
                 if (user.TwoFactorEnabled && !isLdapUser)

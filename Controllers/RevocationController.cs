@@ -12,10 +12,10 @@ namespace IdentityServerHost.Controllers;
 [SecurityHeaders]
 public class RevocationController : ControllerBase
 {
-    private readonly IPersistedGrantService _persistedGrantService;
+    private readonly IdentityServerHost.Services.Operational.IPersistedGrantService _persistedGrantService;
     private readonly IAuditService _auditService;
 
-    public RevocationController(IPersistedGrantService persistedGrantService, IAuditService auditService)
+    public RevocationController(IdentityServerHost.Services.Operational.IPersistedGrantService persistedGrantService, IAuditService auditService)
     {
         _persistedGrantService = persistedGrantService;
         _auditService = auditService;
