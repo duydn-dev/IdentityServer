@@ -1,5 +1,6 @@
 using IdentityServer4.EntityFramework.Entities;
 using IdentityServerHost.Models.ViewModels.Configuration;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace IdentityServerHost.Controllers;
 public class IdentityResourcesController : Controller
 {
     private readonly IIdentityResourceConfigService _service;
+    private readonly IAuditService _auditService;
 
-    public IdentityResourcesController(IIdentityResourceConfigService service)
+    public IdentityResourcesController(IIdentityResourceConfigService service, IAuditService auditService)
     {
         _service = service;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null)
@@ -46,6 +49,7 @@ public class IdentityResourcesController : Controller
             var resource = MapToEntity(model);
             if (await _service.CreateAsync(resource))
             {
+                await _auditService.LogAsync("IdentityResource.Create", "IdentityResource", resource.Name ?? "", $"Name={model.Name}", true);
                 TempData["Success"] = "Thêm Identity Resource thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -71,6 +75,7 @@ public class IdentityResourcesController : Controller
             var resource = MapToEntity(model);
             if (await _service.UpdateAsync(resource))
             {
+                await _auditService.LogAsync("IdentityResource.Update", "IdentityResource", resource.Name ?? "", $"Name={model.Name}", true);
                 TempData["Success"] = "Cập nhật Identity Resource thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -81,7 +86,9 @@ public class IdentityResourcesController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteAjax(int id)
     {
+        var resourceBeforeDelete = await _service.GetByIdAsync(id);
         var success = await _service.DeleteAsync(id);
+        if (success) await _auditService.LogAsync("IdentityResource.Delete", "IdentityResource", resourceBeforeDelete?.Name ?? id.ToString(), null, true);
         return Json(new { success, message = success ? "Xóa thành công." : "Không thể xóa." });
     }
 

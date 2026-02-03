@@ -1,0 +1,74 @@
+@model IEnumerable<IdentityServerHost.Services.Sessions.SessionInfo>
+@{
+    ViewData["Title"] = "Quản lý phiên đăng nhập";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Phiên đăng nhập</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted"><a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Trang chủ</a></li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">Phiên đăng nhập</li>
+            </ul>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <form asp-action="RevokeAll" method="post" class="d-inline" onsubmit="return confirm('Đăng xuất tất cả các phiên khác?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-light-danger">Đăng xuất tất cả phiên khác</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        @if (TempData["Success"] != null)
+        { <div class="alert alert-success alert-dismissible fade show"><span>@TempData["Success"]</span><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div> }
+
+        <div class="card card-flush">
+            <div class="card-header">
+                <h3 class="card-title">Các phiên đang hoạt động</h3>
+            </div>
+            <div class="card-body pt-0">
+                <table class="table align-middle table-row-dashed fs-6 gy-5">
+                    <thead>
+                        <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                            <th>Session ID</th>
+                            <th>Client ID</th>
+                            <th>Subject ID</th>
+                            <th>Loại</th>
+                            <th>Thời gian tạo</th>
+                            <th>Hết hạn</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model)
+                        {
+                            <tr>
+                                <td><span class="text-truncate d-inline-block" style="max-width:150px" title="@s.SessionId">@s.SessionId</span></td>
+                                <td>@(s.ClientId ?? "-")</td>
+                                <td>@(s.SubjectId ?? "-")</td>
+                                <td>@(s.Type ?? "-")</td>
+                                <td>@s.CreationTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(s.Expiration?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                                <td class="text-end">
+                                    <form asp-action="Revoke" method="post" class="d-inline" onsubmit="return confirm('Đăng xuất phiên này?');">
+                                        <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-light-danger">Thu hồi</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (!Model.Any())
+                { <div class="text-center py-10 text-muted">Không có phiên nào đang hoạt động.</div> }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,45 @@
+@model IdentityServer4.Models.ManageViewModels.EnableAuthenticatorViewModel
+@{
+    ViewData["Title"] = "Kích hoạt xác thực hai yếu tố";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3">Kích hoạt xác thực hai yếu tố</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Trang chủ</a></li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">2FA</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div class="app-container container-fluid">
+        <partial name="_ValidationSummary" />
+        <div class="card card-flush">
+            <div class="card-header">
+                <h3 class="card-title">Thiết lập ứng dụng xác thực</h3>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">Quét mã QR bằng ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, Authy...):</p>
+                <div class="mb-4">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=@Uri.EscapeDataString(Model.AuthenticatorUri ?? "")" alt="QR Code" />
+                </div>
+                <p class="text-muted fs-7 mb-4">Hoặc nhập mã thủ công: <code>@Model.SharedKey</code></p>
+                <form asp-action="EnableAuthenticator" method="post">
+                    <div class="fv-row mb-5">
+                        <label asp-for="Code" class="form-label">Mã xác thực <span class="text-danger">*</span></label>
+                        <input asp-for="Code" class="form-control" autocomplete="one-time-code" maxlength="7" placeholder="000000" />
+                        <span asp-validation-for="Code" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Xác thực và kích hoạt</button>
+                    <a asp-action="Index" class="btn btn-light ms-2">Hủy</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

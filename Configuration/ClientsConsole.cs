@@ -120,6 +120,8 @@ public static class ClientsConsole
                 ClientSecrets = {new Secret("secret".Sha256())},
                 AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
                 AllowedScopes =
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
@@ -137,6 +139,8 @@ public static class ClientsConsole
                 RequireClientSecret = false,
                 AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
                 AllowedScopes =
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
@@ -157,6 +161,8 @@ public static class ClientsConsole
                 RequirePkce = true,
                 RedirectUris = {"http://127.0.0.1"},
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
                 AllowedScopes =
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
@@ -178,6 +184,8 @@ public static class ClientsConsole
                 RedirectUris = {"sample-windows-client://callback"},
                 RequireConsent = false,
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
                 AllowedIdentityTokenSigningAlgorithms = {"ES256"},
                 AllowedScopes =
                 {
@@ -213,6 +221,8 @@ public static class ClientsConsole
                 RequireClientSecret = false,
 
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
 
                 AllowedScopes =
                 {

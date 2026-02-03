@@ -1,5 +1,6 @@
 using IdentityServerHost.Models;
 using IdentityServerHost.Models.ViewModels;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,13 @@ public class UsersController : Controller
 {
     private readonly IUserService _userService;
     private readonly IRoleService _roleService;
+    private readonly IAuditService _auditService;
 
-    public UsersController(IUserService userService, IRoleService roleService)
+    public UsersController(IUserService userService, IRoleService roleService, IAuditService auditService)
     {
         _userService = userService;
         _roleService = roleService;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null)
@@ -70,6 +73,7 @@ public class UsersController : Controller
             var (success, errors) = await _userService.CreateAsync(user, model.Password!, model.SelectedRoles);
             if (success)
             {
+                await _auditService.LogAsync("User.Create", "User", user.Id.ToString(), $"UserName={model.UserName}", true);
                 TempData["Success"] = "Thêm người dùng thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -145,6 +149,7 @@ public class UsersController : Controller
             var (success, errors) = await _userService.UpdateAsync(user, model.Password, model.SelectedRoles);
             if (success)
             {
+                await _auditService.LogAsync("User.Update", "User", user.Id.ToString(), $"UserName={model.UserName}", true);
                 TempData["Success"] = "Cập nhật người dùng thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -163,6 +168,7 @@ public class UsersController : Controller
         var (success, errors) = await _userService.DeleteAsync(id);
         if (success)
         {
+            await _auditService.LogAsync("User.Delete", "User", id.ToString(), null, true);
             TempData["Success"] = "Xóa người dùng thành công.";
             return RedirectToAction(nameof(Index));
         }
@@ -175,6 +181,7 @@ public class UsersController : Controller
     public async Task<IActionResult> DeleteAjax(Guid id)
     {
         var (success, errors) = await _userService.DeleteAsync(id);
+        if (success) await _auditService.LogAsync("User.Delete", "User", id.ToString(), null, true);
         return Json(new { success, message = success ? "Xóa thành công." : string.Join("; ", errors) });
     }
 }

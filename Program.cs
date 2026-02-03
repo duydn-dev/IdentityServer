@@ -13,15 +13,26 @@
 */
 
 using IdentityServerHost.Data;
+using IdentityServerHost.HealthChecks;
 using IdentityServerHost.Extentions;
+using IdentityServerHost.Middleware;
 using IdentityServerHost.Models;
 using IdentityServerHost.SeedDatas;
+using IdentityServerHost.Services;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Configuration;
 using IdentityServerHost.Services.Identity;
+using IdentityServerHost.Services.Ldap;
+using IdentityServerHost.Services.Alerting;
+using IdentityServerHost.Services.Operational;
+using IdentityServerHost.Services.Sessions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
-using System.Xml.Linq;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using StackExchange.Redis;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 Console.Title = "DTI Identity Server";
@@ -53,22 +64,80 @@ try
     // Configuration
     var configuration = builder.Configuration;
     var connectionString = configuration.GetConnectionString("DefaultConnection");
+    var redisConnection = configuration.GetConnectionString("Redis");
 
     // Services (merged from Startup.ConfigureServices)
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 
-    builder.Services.AddIdentity<ApplicationUser, IdentityServerHost.Models.IdentityRole>()
+    builder.Services.AddDbContext<AuditDbContext>(options =>
+        options.UseNpgsql(connectionString, sql => sql.MigrationsAssembly("IdentityServerHost")));
+
+    builder.Services.AddHttpContextAccessor();
+
+    builder.Services.AddIdentity<ApplicationUser, IdentityServerHost.Models.IdentityRole>(options =>
+    {
+        options.Password.RequiredLength = configuration.GetValue("PasswordPolicy:MinLength", 8);
+        options.Password.RequireDigit = configuration.GetValue("PasswordPolicy:RequireDigit", true);
+        options.Password.RequireLowercase = configuration.GetValue("PasswordPolicy:RequireLowercase", true);
+        options.Password.RequireUppercase = configuration.GetValue("PasswordPolicy:RequireUppercase", true);
+        options.Password.RequireNonAlphanumeric = configuration.GetValue("PasswordPolicy:RequireNonAlphanumeric", true);
+    })
         .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddDefaultTokenProviders();
+        .AddDefaultTokenProviders()
+        .AddPasswordValidator<PasswordPolicyValidator>();
+
+    builder.Services.Configure<IpWhitelistOptions>(configuration.GetSection("IpWhitelist"));
+    builder.Services.Configure<LdapOptions>(configuration.GetSection("Ldap"));
+    IdentityServerHost.Quickstart.UI.AccountOptions.RequireMfa = configuration.GetValue("AccountOptions:RequireMfa", false);
 
     builder.Services.AddScoped<IRoleService, RoleService>();
     builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<IAuditService, AuditService>();
+    builder.Services.AddScoped<ISessionService, SessionService>();
+    builder.Services.AddScoped<IPersistedGrantService, PersistedGrantService>();
+    builder.Services.AddScoped<IDeviceCodeService, DeviceCodeService>();
+    builder.Services.AddSingleton<ILdapService, LdapService>();
+    builder.Services.AddSingleton<IAlertService, AlertService>();
+    builder.Services.AddTransient<IdentityServer4.Events.IEventSink, IdentityServerEventSink>();
+
+    builder.Services.AddRateLimiting(options =>
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
+        options.OnRejected = async (ctx, _) =>
+        {
+            ctx.HttpContext.Response.StatusCode = 429;
+            await ctx.HttpContext.Response.WriteAsync("Too many requests.");
+        };
+    });
+
+    var healthChecks = builder.Services.AddHealthChecks()
+        .AddNpgSql(connectionString, name: "database")
+        .AddDbContextCheck<ApplicationDbContext>("appdb");
+
+    if (!string.IsNullOrEmpty(redisConnection))
+    {
+        builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+        builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+        healthChecks.AddCheck("redis", new RedisHealthCheck(redisConnection));
+    }
 
     builder.Services.AddScoped<IClientConfigService, ClientConfigService>();
     builder.Services.AddScoped<IApiResourceConfigService, ApiResourceConfigService>();
     builder.Services.AddScoped<IApiScopeConfigService, ApiScopeConfigService>();
     builder.Services.AddScoped<IIdentityResourceConfigService, IdentityResourceConfigService>();
+    builder.Services.AddScoped<IStatsService, StatsService>();
+
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService("IdentityServerHost"))
+        .WithMetrics(m =>
+        {
+            m.AddAspNetCoreInstrumentation();
+            m.AddHttpClientInstrumentation();
+            m.AddPrometheusExporter();
+        });
 
     builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
@@ -115,8 +184,25 @@ try
 
     app.UseRouting();
 
+    app.UseIpWhitelist();
+    app.UseRateLimiting();
     app.ConfigureCspAllowHeaders();
-    // Seed users and apply migrations at startup
+
+    app.MapHealthChecks("/health");
+    app.MapPrometheusScrapingEndpoint();
+    // Migrations & Seed
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var auditDb = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
+            await auditDb.Database.MigrateAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Audit DB migration failed - ensure migrations exist. Run: dotnet ef migrations add InitialAuditDb -c AuditDbContext -o Migrations/AuditDb");
+        }
+    }
     await SeedClients.StartSeedAsync(app.Services);
     await SeedUsers.StartSeedAsync(app.Services);
 

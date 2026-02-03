@@ -1,5 +1,6 @@
 using IdentityServer4.EntityFramework.Entities;
 using IdentityServerHost.Models.ViewModels.Configuration;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace IdentityServerHost.Controllers;
 public class ApiResourcesController : Controller
 {
     private readonly IApiResourceConfigService _service;
+    private readonly IAuditService _auditService;
 
-    public ApiResourcesController(IApiResourceConfigService service)
+    public ApiResourcesController(IApiResourceConfigService service, IAuditService auditService)
     {
         _service = service;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null)
@@ -46,6 +49,7 @@ public class ApiResourcesController : Controller
             var resource = MapToEntity(model);
             if (await _service.CreateAsync(resource))
             {
+                await _auditService.LogAsync("ApiResource.Create", "ApiResource", resource.Name ?? "", $"Name={model.Name}", true);
                 TempData["Success"] = "Thêm API Resource thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -71,6 +75,7 @@ public class ApiResourcesController : Controller
             var resource = MapToEntity(model);
             if (await _service.UpdateAsync(resource))
             {
+                await _auditService.LogAsync("ApiResource.Update", "ApiResource", resource.Name ?? "", $"Name={model.Name}", true);
                 TempData["Success"] = "Cập nhật API Resource thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -81,7 +86,9 @@ public class ApiResourcesController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteAjax(int id)
     {
+        var resourceBeforeDelete = await _service.GetByIdAsync(id);
         var success = await _service.DeleteAsync(id);
+        if (success) await _auditService.LogAsync("ApiResource.Delete", "ApiResource", resourceBeforeDelete?.Name ?? id.ToString(), null, true);
         return Json(new { success, message = success ? "Xóa thành công." : "Không thể xóa." });
     }
 

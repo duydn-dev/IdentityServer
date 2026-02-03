@@ -1,5 +1,6 @@
 using IdentityServer4.EntityFramework.Entities;
 using IdentityServerHost.Models.ViewModels.Configuration;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,17 +16,20 @@ public class ClientsController : Controller
     private readonly IApiScopeConfigService _apiScopeService;
     private readonly IIdentityResourceConfigService _identityResourceService;
     private readonly IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext _configDb;
+    private readonly IAuditService _auditService;
 
     public ClientsController(
         IClientConfigService clientService,
         IApiScopeConfigService apiScopeService,
         IIdentityResourceConfigService identityResourceService,
-        IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext configDb)
+        IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext configDb,
+        IAuditService auditService)
     {
         _clientService = clientService;
         _apiScopeService = apiScopeService;
         _identityResourceService = identityResourceService;
         _configDb = configDb;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null)
@@ -73,6 +77,7 @@ public class ClientsController : Controller
 
             if (await _clientService.CreateAsync(client))
             {
+                await _auditService.LogAsync("Client.Create", "Client", client.ClientId, $"ClientName={model.ClientName}", true);
                 TempData["Success"] = "Thêm client thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -121,6 +126,7 @@ public class ClientsController : Controller
 
             if (await _clientService.UpdateAsync(client))
             {
+                await _auditService.LogAsync("Client.Update", "Client", client.ClientId, $"ClientName={model.ClientName}", true);
                 TempData["Success"] = "Cập nhật client thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -133,8 +139,10 @@ public class ClientsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
+        var clientBeforeDelete = await _clientService.GetByIdAsync(id);
         if (await _clientService.DeleteAsync(id))
         {
+            await _auditService.LogAsync("Client.Delete", "Client", clientBeforeDelete?.ClientId ?? id.ToString(), null, true);
             TempData["Success"] = "Xóa client thành công.";
             return RedirectToAction(nameof(Index));
         }
@@ -145,7 +153,9 @@ public class ClientsController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteAjax(int id)
     {
+        var clientBeforeDelete = await _clientService.GetByIdAsync(id);
         var success = await _clientService.DeleteAsync(id);
+        if (success) await _auditService.LogAsync("Client.Delete", "Client", clientBeforeDelete?.ClientId ?? id.ToString(), null, true);
         return Json(new { success, message = success ? "Xóa thành công." : "Không thể xóa." });
     }
 

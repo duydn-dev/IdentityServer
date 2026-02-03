@@ -23,5 +23,8 @@ public class AccountOptions
     public static bool ShowLogoutPrompt = true;
     public static bool AutomaticRedirectAfterSignOut = false;
 
+    /// <summary>Khi true, user phải bật MFA trước khi sử dụng. Cấu hình qua appsettings.</summary>
+    public static bool RequireMfa { get; set; }
+
     public static string InvalidCredentialsErrorMessage = "Invalid username or password";
 }

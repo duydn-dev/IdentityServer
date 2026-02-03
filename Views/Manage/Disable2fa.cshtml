@@ -1,0 +1,24 @@
+@{
+    ViewData["Title"] = "Tắt xác thực hai yếu tố";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3">Tắt xác thực hai yếu tố</h1>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div class="app-container container-fluid">
+        <div class="alert alert-warning">
+            Tắt 2FA sẽ làm giảm bảo mật tài khoản của bạn.
+        </div>
+        <form asp-action="Disable2faConfirm" method="post">
+            <button type="submit" class="btn btn-danger">Tắt 2FA</button>
+            <a asp-action="Index" class="btn btn-light ms-2">Hủy</a>
+        </form>
+    </div>
+</div>

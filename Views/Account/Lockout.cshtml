@@ -1,0 +1,23 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <title>Tài khoản bị khóa</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="~/font/inter/inter.css" rel="stylesheet" />
+    <link href="~/assets/plugins/global/plugins.bundle.css" rel="stylesheet" />
+    <link href="~/assets/css/style.bundle.css" rel="stylesheet" />
+</head>
+<body class="app-blank">
+    <div class="d-flex flex-column flex-center flex-column-fluid p-10">
+        <div class="text-center">
+            <h1 class="fw-bolder fs-2qx text-gray-900 mb-4">Tài khoản bị khóa</h1>
+            <p class="fs-6 fw-semibold text-gray-500 mb-6">Tài khoản của bạn đã bị khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau hoặc liên hệ quản trị viên.</p>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Quay lại đăng nhập</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -82,6 +82,8 @@ public static class ClientsWeb
                 PostLogoutRedirectUris = { "https://localhost:44301/signout-callback-oidc" },
 
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
 
                 AllowedScopes = allowedScopes
             },
@@ -108,6 +110,8 @@ public static class ClientsWeb
                 PostLogoutRedirectUris = { "https://localhost:44302/signout-callback-oidc" },
 
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
 
                 AllowedScopes = allowedScopes
             },
@@ -137,6 +141,8 @@ public static class ClientsWeb
                 AllowedCorsOrigins = { "http://localhost:4200" },
 
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
                 AllowedScopes = new[]
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
@@ -171,6 +177,8 @@ public static class ClientsWeb
                 PostLogoutRedirectUris = { "https://localhost:44303/signout-callback-oidc" },
 
                 AllowOfflineAccess = true,
+                RefreshTokenUsage = TokenUsage.OneTimeOnly,
+                RefreshTokenExpiration = TokenExpiration.Sliding,
 
                 AllowedScopes = allowedScopes
             }

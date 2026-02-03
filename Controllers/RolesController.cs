@@ -1,5 +1,6 @@
 using IdentityServerHost.Models;
 using IdentityServerHost.Models.ViewModels;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace IdentityServerHost.Controllers;
 public class RolesController : Controller
 {
     private readonly IRoleService _roleService;
+    private readonly IAuditService _auditService;
 
-    public RolesController(IRoleService roleService)
+    public RolesController(IRoleService roleService, IAuditService auditService)
     {
         _roleService = roleService;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null)
@@ -55,6 +58,7 @@ public class RolesController : Controller
             (bool success, IEnumerable<string> errors) = await _roleService.CreateAsync(role);
             if (success)
             {
+                await _auditService.LogAsync("Role.Create", "Role", role.Id.ToString(), $"Name={model.Name}", true);
                 TempData["Success"] = "Thêm vai trò thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -103,6 +107,7 @@ public class RolesController : Controller
             var (success, errors) = await _roleService.UpdateAsync(role);
             if (success)
             {
+                await _auditService.LogAsync("Role.Update", "Role", role.Id.ToString(), $"Name={model.Name}", true);
                 TempData["Success"] = "Cập nhật vai trò thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -121,6 +126,7 @@ public class RolesController : Controller
         var (success, errors) = await _roleService.DeleteAsync(id);
         if (success)
         {
+            await _auditService.LogAsync("Role.Delete", "Role", id.ToString(), null, true);
             TempData["Success"] = "Xóa vai trò thành công.";
             return RedirectToAction(nameof(Index));
         }
@@ -133,6 +139,7 @@ public class RolesController : Controller
     public async Task<IActionResult> DeleteAjax(Guid id)
     {
         var (success, errors) = await _roleService.DeleteAsync(id);
+        if (success) await _auditService.LogAsync("Role.Delete", "Role", id.ToString(), null, true);
         return Json(new { success, message = success ? "Xóa thành công." : string.Join("; ", errors) });
     }
 }

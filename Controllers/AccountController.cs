@@ -13,6 +13,9 @@
 */
 
 using IdentityServerHost.Models;
+using IdentityServerHost.Services.Audit;
+using IdentityServerHost.Services.Ldap;
+using Microsoft.Extensions.Options;
 
 namespace IdentityServerHost.Quickstart.UI;
 
@@ -31,6 +34,9 @@ public class AccountController : Controller
     private readonly IClientStore _clientStore;
     private readonly IAuthenticationSchemeProvider _schemeProvider;
     private readonly IEventService _events;
+    private readonly ILdapService _ldapService;
+    private readonly LdapOptions _ldapOptions;
+    private readonly IAuditService _auditService;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
@@ -38,7 +44,10 @@ public class AccountController : Controller
         IIdentityServerInteractionService interaction,
         IClientStore clientStore,
         IAuthenticationSchemeProvider schemeProvider,
-        IEventService events)
+        IEventService events,
+        ILdapService ldapService,
+        IOptions<LdapOptions> ldapOptions,
+        IAuditService auditService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -46,6 +55,9 @@ public class AccountController : Controller
         _clientStore = clientStore;
         _schemeProvider = schemeProvider;
         _events = events;
+        _ldapService = ldapService;
+        _ldapOptions = ldapOptions.Value;
+        _auditService = auditService;
     }
 
     /// <summary>
@@ -78,13 +90,67 @@ public class AccountController : Controller
 
         if (ModelState.IsValid)
         {
-            var user = await _userManager.FindByNameAsync(model.Username);
+            ApplicationUser? user = null;
+            bool isLdapUser = false;
+
+            user = await _userManager.FindByNameAsync(model.Username);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
-                await _events.RaiseAsync(new UserLoginSuccessEvent(user.UserName!, user.Id.ToString(), user.UserName!, clientId: context?.Client.ClientId));
+                // Local DB auth success
+            }
+            else if (_ldapOptions.Enabled)
+            {
+                var ldapResult = await _ldapService.AuthenticateAsync(model.Username, model.Password);
+                if (ldapResult.Success)
+                {
+                    user = await _userManager.FindByNameAsync(model.Username);
+                    if (user == null)
+                    {
+                        user = new ApplicationUser
+                        {
+                            Id = Guid.NewGuid(),
+                            UserName = model.Username,
+                            Email = ldapResult.Email,
+                            EmailConfirmed = !string.IsNullOrEmpty(ldapResult.Email),
+                            SecurityStamp = Guid.NewGuid().ToString()
+                        };
+                        var createResult = await _userManager.CreateAsync(user, Convert.ToBase64String(Guid.NewGuid().ToByteArray()) + "!aA1");
+                        if (!createResult.Succeeded)
+                        {
+                            ModelState.AddModelError(string.Empty, "Không thể tạo tài khoản từ LDAP.");
+                            var vm = await BuildLoginViewModelAsync(model);
+                            return View(vm);
+                        }
+                    }
+                    isLdapUser = true;
+                }
+                else
+                    user = null;
+            }
+            else
+                user = null;
 
-                // only set explicit expiration here if user chooses "remember me". 
-                // otherwise we rely upon expiration configured in cookie middleware.
+            if (user != null)
+            {
+                if (AccountOptions.RequireMfa && !user.TwoFactorEnabled)
+                {
+                    ModelState.AddModelError(string.Empty, "MFA bắt buộc. Vui lòng liên hệ quản trị viên để kích hoạt xác thực hai yếu tố cho tài khoản của bạn.");
+                    var vm = await BuildLoginViewModelAsync(model);
+                    return View(vm);
+                }
+
+                if (user.TwoFactorEnabled && !isLdapUser)
+                {
+                    var signInResult = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberLogin, lockoutOnFailure: false);
+                    if (signInResult.RequiresTwoFactor)
+                    {
+                        return RedirectToAction(nameof(LoginWith2fa), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberLogin });
+                    }
+                }
+
+                await _events.RaiseAsync(new UserLoginSuccessEvent(user.UserName!, user.Id.ToString(), user.UserName!, clientId: context?.Client.ClientId));
+                await _auditService.LogAsync("Login.Success", "User", user.Id.ToString(), $"UserName={user.UserName}", true);
+
                 AuthenticationProperties props = null;
                 if (AccountOptions.AllowRememberLogin && model.RememberLogin)
                 {
@@ -94,9 +160,7 @@ public class AccountController : Controller
                         ExpiresUtc = DateTimeOffset.UtcNow.Add(AccountOptions.RememberMeLoginDuration)
                     };
                 }
-                ;
 
-                // issue authentication cookie with subject ID and username
                 var isuser = new IdentityServerUser(user.Id.ToString())
                 {
                     DisplayName = user.UserName
@@ -134,6 +198,7 @@ public class AccountController : Controller
             }
 
             await _events.RaiseAsync(new UserLoginFailureEvent(model.Username, "invalid credentials", clientId: context?.Client.ClientId));
+            await _auditService.LogAsync("Login.Failure", "User", null, $"Username={model.Username}", false);
             ModelState.AddModelError(string.Empty, AccountOptions.InvalidCredentialsErrorMessage);
         }
 
@@ -208,11 +273,12 @@ public class AccountController : Controller
 
         if (User?.Identity.IsAuthenticated == true)
         {
-            // delete local authentication cookie
+            var subjectId = User.GetSubjectId();
+            var displayName = User.GetDisplayName();
             await HttpContext.SignOutAsync();
             await _signInManager.SignOutAsync();
-            // raise the logout event
-            await _events.RaiseAsync(new UserLogoutSuccessEvent(User.GetSubjectId(), User.GetDisplayName()));
+            await _events.RaiseAsync(new UserLogoutSuccessEvent(subjectId, displayName));
+            await _auditService.LogAsync("Logout", "User", subjectId, $"UserName={displayName}", true);
         }
 
         // check if we need to trigger sign-out at an upstream identity provider
@@ -236,6 +302,97 @@ public class AccountController : Controller
         return View();
     }
 
+    [HttpGet]
+    public async Task<IActionResult> LoginWith2fa(string returnUrl, bool rememberMe = false)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+            return RedirectToAction(nameof(Login), new { returnUrl });
+
+        return View(new IdentityServer4.Models.AccountViewModels.LoginWith2faViewModel
+        {
+            ReturnUrl = returnUrl,
+            RememberMe = rememberMe
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LoginWith2fa(IdentityServer4.Models.AccountViewModels.LoginWith2faViewModel model)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+            return RedirectToAction(nameof(Login), new { returnUrl = model.ReturnUrl });
+
+        var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(model.TwoFactorCode, model.RememberMe, model.RememberMachine);
+        if (result.Succeeded)
+        {
+            await _events.RaiseAsync(new UserLoginSuccessEvent(user.UserName!, user.Id.ToString(), user.UserName!));
+            await _auditService.LogAsync("Login.Success", "User", user.Id.ToString(), $"UserName={user.UserName} (2FA)", true);
+
+            AuthenticationProperties props = null;
+            if (model.RememberMe)
+            {
+                props = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.Add(AccountOptions.RememberMeLoginDuration)
+                };
+            }
+            var isuser = new IdentityServerUser(user.Id.ToString()) { DisplayName = user.UserName };
+            await HttpContext.SignInAsync(isuser, props);
+
+            return model.ReturnUrl.IsAllowedRedirect() ? Redirect(model.ReturnUrl.SanitizeForRedirect()) : Redirect("~/");
+        }
+        else if (result.IsLockedOut)
+        {
+            return RedirectToAction(nameof(Lockout));
+        }
+        else
+        {
+            ModelState.AddModelError(string.Empty, "Mã xác thực không hợp lệ.");
+            return View(model);
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> LoginWithRecoveryCode(string returnUrl)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+            return RedirectToAction(nameof(Login), new { returnUrl });
+
+        return View(new IdentityServer4.Models.AccountViewModels.LoginWithRecoveryCodeViewModel { ReturnUrl = returnUrl });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LoginWithRecoveryCode(IdentityServer4.Models.AccountViewModels.LoginWithRecoveryCodeViewModel model)
+    {
+        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user == null)
+            return RedirectToAction(nameof(Login), new { returnUrl = model.ReturnUrl });
+
+        var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(model.RecoveryCode.Replace(" ", ""));
+        if (result.Succeeded)
+        {
+            await _events.RaiseAsync(new UserLoginSuccessEvent(user.UserName!, user.Id.ToString(), user.UserName!));
+            await _auditService.LogAsync("Login.Success", "User", user.Id.ToString(), $"UserName={user.UserName} (Recovery)", true);
+
+            var isuser = new IdentityServerUser(user.Id.ToString()) { DisplayName = user.UserName };
+            await HttpContext.SignInAsync(isuser);
+
+            return model.ReturnUrl.IsAllowedRedirect() ? Redirect(model.ReturnUrl.SanitizeForRedirect()) : Redirect("~/");
+        }
+        ModelState.AddModelError(string.Empty, "Mã khôi phục không hợp lệ.");
+        return View(model);
+    }
+
+    [HttpGet]
+    public IActionResult Lockout()
+    {
+        return View();
+    }
 
     /*****************************************/
     /* helper APIs for the AccountController */

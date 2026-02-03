@@ -1,5 +1,6 @@
 using IdentityServer4.EntityFramework.Entities;
 using IdentityServerHost.Models.ViewModels.Configuration;
+using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace IdentityServerHost.Controllers;
 public class ApiScopesController : Controller
 {
     private readonly IApiScopeConfigService _service;
+    private readonly IAuditService _auditService;
 
-    public ApiScopesController(IApiScopeConfigService service)
+    public ApiScopesController(IApiScopeConfigService service, IAuditService auditService)
     {
         _service = service;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null)
@@ -46,6 +49,7 @@ public class ApiScopesController : Controller
             var scope = MapToEntity(model);
             if (await _service.CreateAsync(scope))
             {
+                await _auditService.LogAsync("ApiScope.Create", "ApiScope", scope.Name ?? "", $"Name={model.Name}", true);
                 TempData["Success"] = "Thêm API Scope thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -71,6 +75,7 @@ public class ApiScopesController : Controller
             var scope = MapToEntity(model);
             if (await _service.UpdateAsync(scope))
             {
+                await _auditService.LogAsync("ApiScope.Update", "ApiScope", scope.Name ?? "", $"Name={model.Name}", true);
                 TempData["Success"] = "Cập nhật API Scope thành công.";
                 return RedirectToAction(nameof(Index));
             }
@@ -81,7 +86,9 @@ public class ApiScopesController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteAjax(int id)
     {
+        var scopeBeforeDelete = await _service.GetByIdAsync(id);
         var success = await _service.DeleteAsync(id);
+        if (success) await _auditService.LogAsync("ApiScope.Delete", "ApiScope", scopeBeforeDelete?.Name ?? id.ToString(), null, true);
         return Json(new { success, message = success ? "Xóa thành công." : "Không thể xóa." });
     }
 

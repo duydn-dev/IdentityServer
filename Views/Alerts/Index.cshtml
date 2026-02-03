@@ -1,0 +1,72 @@
+@model IReadOnlyList<IdentityServerHost.Services.Alerting.AlertRecord>
+@{
+    ViewData["Title"] = "Cảnh báo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Giám sát & Cảnh báo</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted">
+                    <a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Trang chủ</a>
+                </li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">Cảnh báo</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        <div class="card card-flush">
+            <div class="card-header pt-5">
+                <h3 class="card-title align-items-start flex-column">
+                    <span class="card-label fw-bold text-gray-900">Cảnh báo gần đây</span>
+                    <span class="text-muted mt-1 fw-semibold fs-7">Sự kiện đăng nhập thất bại, lỗi hệ thống...</span>
+                </h3>
+            </div>
+            <div class="card-body pt-5">
+                @if (Model.Count == 0)
+                {
+                    <p class="text-muted">Chưa có cảnh báo nào.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4">
+                            <thead>
+                                <tr class="fw-bold text-muted">
+                                    <th class="min-w-100px">Thời gian</th>
+                                    <th class="min-w-80px">Mức độ</th>
+                                    <th class="min-w-120px">Danh mục</th>
+                                    <th>Nội dung</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in Model)
+                                {
+                                    var badgeClass = a.Level switch
+                                    {
+                                        IdentityServerHost.Services.Alerting.AlertLevel.Critical => "badge-light-danger",
+                                        IdentityServerHost.Services.Alerting.AlertLevel.Error => "badge-light-danger",
+                                        IdentityServerHost.Services.Alerting.AlertLevel.Warning => "badge-light-warning",
+                                        _ => "badge-light-info"
+                                    };
+                                    <tr>
+                                        <td>@a.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        <td><span class="badge @badgeClass">@a.Level</span></td>
+                                        <td>@a.Category</td>
+                                        <td>@a.Message @(string.IsNullOrEmpty(a.Details) ? "" : $" - {a.Details}")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

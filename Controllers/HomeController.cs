@@ -12,6 +12,8 @@
  copies or substantial portions of the Software.
 */
 
+using IdentityServerHost.Services;
+
 namespace IdentityServerHost.Quickstart.UI;
 
 [SecurityHeaders]
@@ -21,20 +23,22 @@ public class HomeController : Controller
         private readonly IIdentityServerInteractionService _interaction;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger _logger;
+        private readonly IStatsService _statsService;
 
-        public HomeController(IIdentityServerInteractionService interaction, IWebHostEnvironment environment, ILogger<HomeController> logger)
+        public HomeController(IIdentityServerInteractionService interaction, IWebHostEnvironment environment, ILogger<HomeController> logger, IStatsService statsService)
         {
             _interaction = interaction;
             _environment = environment;
             _logger = logger;
+            _statsService = statsService;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             if (_environment.IsDevelopment())
             {
-                // only show in development
-                return View();
+                var stats = await _statsService.GetDashboardStatsAsync();
+                return View(stats);
             }
 
             _logger.LogInformation("Homepage is disabled in production. Returning 404.");

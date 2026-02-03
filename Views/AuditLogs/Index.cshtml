@@ -1,0 +1,98 @@
+@model IEnumerable<IdentityServerHost.Models.AuditLog>
+@{
+    ViewData["Title"] = "Audit Logs";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var userId = ViewBag.UserId as string ?? "";
+    var action = ViewBag.Action as string ?? "";
+    var from = ViewBag.From as DateTime?;
+    var to = ViewBag.To as DateTime?;
+    var page = (int)(ViewBag.Page ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 50);
+    var totalCount = (int)(ViewBag.TotalCount ?? 0);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Audit Logs</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted"><a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Trang chủ</a></li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">Bảo mật</li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">Audit Logs</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        <div class="card card-flush">
+            <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+                <form asp-action="Index" method="get" class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="hidden" name="page" value="1" />
+                    <input type="text" name="userId" value="@userId" class="form-control form-control-solid w-150px" placeholder="User ID" />
+                    <input type="text" name="action" value="@action" class="form-control form-control-solid w-150px" placeholder="Action" />
+                    <input type="date" name="from" value="@(from?.ToString("yyyy-MM-dd"))" class="form-control form-control-solid w-150px" placeholder="Từ ngày" />
+                    <input type="date" name="to" value="@(to?.ToString("yyyy-MM-dd"))" class="form-control form-control-solid w-150px" placeholder="Đến ngày" />
+                    <select name="pageSize" class="form-select form-select-solid w-100px" onchange="this.form.submit()">
+                        @if (pageSize == 50) { <option value="50" selected>50</option> } else { <option value="50">50</option> }
+                        @if (pageSize == 100) { <option value="100" selected>100</option> } else { <option value="100">100</option> }
+                        @if (pageSize == 200) { <option value="200" selected>200</option> } else { <option value="200">200</option> }
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-light-primary">Lọc</button>
+                </form>
+            </div>
+            <div class="card-body pt-0">
+                <table class="table align-middle table-row-dashed fs-6 gy-5">
+                    <thead>
+                        <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                            <th class="min-w-150px">Thời gian</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Entity</th>
+                            <th>Chi tiết</th>
+                            <th>IP</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model)
+                        {
+                            <tr>
+                                <td>@a.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@(a.UserName ?? a.UserId ?? "-")</td>
+                                <td>@a.Action</td>
+                                <td>@(a.EntityType != null ? $"{a.EntityType}:{a.EntityId}" : "-")</td>
+                                <td><span class="text-truncate d-inline-block" style="max-width:200px" title="@a.Details">@(a.Details ?? "-")</span></td>
+                                <td>@(a.IpAddress ?? "-")</td>
+                                <td>@if (a.Success) { <span class="badge badge-light-success">OK</span> } else { <span class="badge badge-light-danger">Fail</span> }</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (!Model.Any())
+                { <div class="text-center py-10 text-muted">Chưa có audit log.</div> }
+                @if (totalCount > 0)
+                {
+                    <div class="d-flex justify-content-between align-items-center mt-5">
+                        <div class="text-muted fs-7">Hiển thị @((page-1)*pageSize+1)-@(Math.Min(page*pageSize, totalCount)) / @totalCount</div>
+                        @if (totalPages > 1)
+                        {
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item @(page<=1?"disabled":"")"><a class="page-link" asp-action="Index" asp-route-page="@(page-1)" asp-route-userId="@userId" asp-route-action="@action" asp-route-from="@(from?.ToString("yyyy-MM-dd"))" asp-route-to="@(to?.ToString("yyyy-MM-dd"))" asp-route-pageSize="@pageSize">Trước</a></li>
+                                    @for (var i = Math.Max(1, page - 2); i <= Math.Min(totalPages, page + 2); i++)
+                                    { <li class="page-item @(i==page?"active":"")"><a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-userId="@userId" asp-route-action="@action" asp-route-from="@(from?.ToString("yyyy-MM-dd"))" asp-route-to="@(to?.ToString("yyyy-MM-dd"))" asp-route-pageSize="@pageSize">@i</a></li> }
+                                    <li class="page-item @(page>=totalPages?"disabled":"")"><a class="page-link" asp-action="Index" asp-route-page="@(page+1)" asp-route-userId="@userId" asp-route-action="@action" asp-route-from="@(from?.ToString("yyyy-MM-dd"))" asp-route-to="@(to?.ToString("yyyy-MM-dd"))" asp-route-pageSize="@pageSize">Sau</a></li>
+                                </ul>
+                            </nav>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
