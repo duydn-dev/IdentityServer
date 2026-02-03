@@ -113,6 +113,43 @@ public static class ClientsWeb
             },
             
             ///////////////////////////////////////////
+            // Angular SPA Client
+            //////////////////////////////////////////
+            new Client
+            {
+                ClientId = "angular.client",
+                ClientName = "Angular SPA Client",
+                ClientUri = "http://localhost:4200",
+
+                AllowedGrantTypes = GrantTypes.Code,
+                RequireClientSecret = false,
+                RequirePkce = true,
+
+                RedirectUris =
+                {
+                    "http://localhost:4200",
+                    "http://localhost:4200/",
+                    "http://localhost:4200/callback",
+                    "http://localhost:4200/auth/callback"
+                },
+
+                PostLogoutRedirectUris = { "http://localhost:4200", "http://localhost:4200/" },
+                AllowedCorsOrigins = { "http://localhost:4200" },
+
+                AllowOfflineAccess = true,
+                AllowedScopes = new[]
+                {
+                    IdentityServerConstants.StandardScopes.OpenId,
+                    IdentityServerConstants.StandardScopes.Profile,
+                    IdentityServerConstants.StandardScopes.Email,
+                    IdentityServerConstants.StandardScopes.OfflineAccess,
+                    "resource1.scope1",
+                    "resource2.scope1",
+                    "transaction"
+                }
+            },
+            
+            ///////////////////////////////////////////
             // MVC Hybrid Flow Sample (Back Channel logout)
             //////////////////////////////////////////
             new Client

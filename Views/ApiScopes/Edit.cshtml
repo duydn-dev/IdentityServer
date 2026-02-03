@@ -1,0 +1,76 @@
+@model IdentityServerHost.Models.ViewModels.Configuration.ApiScopeViewModel
+@{
+    ViewData["Title"] = "Sửa API Scope";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Sửa API Scope</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted"><a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Trang chủ</a></li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted"><a asp-action="Index" class="text-muted text-hover-primary">API Scopes</a></li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">@Model.Name</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        <div class="card card-flush">
+            <div class="card-header"><h3 class="card-title">Thông tin API Scope</h3></div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-5"></div>
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <label asp-for="Name" class="form-label required"></label>
+                            <input asp-for="Name" class="form-control form-control-solid" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DisplayName" class="form-label"></label>
+                            <input asp-for="DisplayName" class="form-control form-control-solid" />
+                        </div>
+                    </div>
+                    <div class="mb-5">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control form-control-solid" rows="2"></textarea>
+                    </div>
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="Enabled" class="form-check-input" />
+                                <span class="form-check-label" asp-for="Enabled"></span>
+                            </label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="Required" class="form-check-input" />
+                                <span class="form-check-label" asp-for="Required"></span>
+                            </label>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="ShowInDiscoveryDocument" class="form-check-input" />
+                                <span class="form-check-label" asp-for="ShowInDiscoveryDocument"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+                        <label asp-for="UserClaimsText" class="form-label"></label>
+                        <input asp-for="UserClaimsText" class="form-control form-control-solid" placeholder="name, email" />
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                        <a asp-action="Index" class="btn btn-light">Hủy</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

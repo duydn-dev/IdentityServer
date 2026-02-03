@@ -1,0 +1,177 @@
+@model IdentityServerHost.Models.ViewModels.Configuration.ClientViewModel
+@{
+    ViewData["Title"] = "Sửa Client";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var availableScopes = ViewBag.AvailableScopes as List<string> ?? new List<string>();
+    var grantTypes = new[] { "authorization_code", "client_credentials", "implicit", "hybrid", "password", "refresh_token", "urn:ietf:params:oauth:grant-type:device_code" };
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Sửa Client</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted">
+                    <a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Trang chủ</a>
+                </li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">
+                    <a asp-action="Index" class="text-muted text-hover-primary">Clients</a>
+                </li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">@Model.ClientId</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        <div class="card card-flush">
+            <div class="card-header">
+                <h3 class="card-title">Thông tin Client</h3>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-5"></div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <label asp-for="ClientId" class="form-label required"></label>
+                            <input asp-for="ClientId" class="form-control form-control-solid" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ClientName" class="form-label"></label>
+                            <input asp-for="ClientName" class="form-control form-control-solid" placeholder="Tên hiển thị" />
+                        </div>
+                    </div>
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <label asp-for="ClientUri" class="form-label"></label>
+                            <input asp-for="ClientUri" class="form-control form-control-solid" placeholder="https://..." />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LogoUri" class="form-label"></label>
+                            <input asp-for="LogoUri" class="form-control form-control-solid" placeholder="https://..." />
+                        </div>
+                    </div>
+                    <div class="mb-5">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control form-control-solid" rows="2"></textarea>
+                    </div>
+
+                    <div class="separator separator-dashed my-5"></div>
+                    <h5 class="mb-4">Cấu hình</h5>
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="Enabled" class="form-check-input" />
+                                <span class="form-check-label">@Html.DisplayNameFor(m => m.Enabled)</span>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="RequireClientSecret" class="form-check-input" />
+                                <span class="form-check-label">@Html.DisplayNameFor(m => m.RequireClientSecret)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="RequireConsent" class="form-check-input" />
+                                <span class="form-check-label">@Html.DisplayNameFor(m => m.RequireConsent)</span>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="AllowRememberConsent" class="form-check-input" />
+                                <span class="form-check-label">@Html.DisplayNameFor(m => m.AllowRememberConsent)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row mb-5">
+                        <div class="col-md-6">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="RequirePkce" class="form-check-input" />
+                                <span class="form-check-label">@Html.DisplayNameFor(m => m.RequirePkce)</span>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-check form-switch form-check-custom form-check-solid">
+                                <input asp-for="AllowOfflineAccess" class="form-check-input" />
+                                <span class="form-check-label">@Html.DisplayNameFor(m => m.AllowOfflineAccess)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-5" id="clientSecretGroup">
+                        <label asp-for="ClientSecret" class="form-label"></label>
+                        <input asp-for="ClientSecret" class="form-control form-control-solid" placeholder="Để trống nếu không đổi. Nhập secret mới để thêm." />
+                        <span class="text-muted fs-7">Chỉ nhập khi muốn thêm secret mới (secret cũ vẫn có hiệu lực)</span>
+                        <span asp-validation-for="ClientSecret" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-5">
+                        <label asp-for="AllowedGrantTypes" class="form-label"></label>
+                        <div class="d-flex flex-wrap gap-3">
+                            @foreach (var gt in grantTypes)
+                            {
+                                <label class="form-check form-check-custom form-check-solid">
+                                    <input class="form-check-input" type="checkbox" name="AllowedGrantTypes" value="@gt"
+                                           @(Model.AllowedGrantTypes.Contains(gt) ? "checked" : "") />
+                                    <span class="form-check-label">@gt</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label asp-for="AllowedScopes" class="form-label"></label>
+                        <div class="d-flex flex-wrap gap-3" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var scope in availableScopes)
+                            {
+                                <label class="form-check form-check-custom form-check-solid">
+                                    <input class="form-check-input" type="checkbox" name="AllowedScopes" value="@scope"
+                                           @(Model.AllowedScopes.Contains(scope) ? "checked" : "") />
+                                    <span class="form-check-label">@scope</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label asp-for="RedirectUrisText" class="form-label"></label>
+                        <textarea asp-for="RedirectUrisText" class="form-control form-control-solid" rows="3" placeholder="Mỗi dòng một URI"></textarea>
+                    </div>
+                    <div class="mb-5">
+                        <label asp-for="PostLogoutRedirectUrisText" class="form-label"></label>
+                        <textarea asp-for="PostLogoutRedirectUrisText" class="form-control form-control-solid" rows="2" placeholder="Mỗi dòng một URI"></textarea>
+                    </div>
+                    <div class="mb-5">
+                        <label asp-for="AllowedCorsOriginsText" class="form-label"></label>
+                        <textarea asp-for="AllowedCorsOriginsText" class="form-control form-control-solid" rows="2" placeholder="Mỗi dòng một origin"></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                        <a asp-action="Index" class="btn btn-light">Hủy</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+<script>
+$(document).ready(function() {
+    function toggleSecret() {
+        $('#clientSecretGroup').toggle($('input[name="RequireClientSecret"]').is(':checked'));
+    }
+    $('input[name="RequireClientSecret"]').on('change', toggleSecret);
+    toggleSecret();
+});
+</script>
+}

@@ -16,6 +16,8 @@ using IdentityServerHost.Data;
 using IdentityServerHost.Extentions;
 using IdentityServerHost.Models;
 using IdentityServerHost.SeedDatas;
+using IdentityServerHost.Services.Configuration;
+using IdentityServerHost.Services.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
@@ -59,6 +61,14 @@ try
     builder.Services.AddIdentity<ApplicationUser, IdentityServerHost.Models.IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
+
+    builder.Services.AddScoped<IRoleService, RoleService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+
+    builder.Services.AddScoped<IClientConfigService, ClientConfigService>();
+    builder.Services.AddScoped<IApiResourceConfigService, ApiResourceConfigService>();
+    builder.Services.AddScoped<IApiScopeConfigService, ApiScopeConfigService>();
+    builder.Services.AddScoped<IIdentityResourceConfigService, IdentityResourceConfigService>();
 
     builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
