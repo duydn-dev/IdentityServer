@@ -7,6 +7,7 @@
     var pageSize = (int)(ViewBag.PageSize ?? 10);
     var totalCount = (int)(ViewBag.TotalCount ?? 0);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var paginationModel = new PaginationViewModel { Page = page, PageSize = pageSize, TotalCount = totalCount, ControllerName = "IdentityResources", RouteValues = new Dictionary<string, string?> { ["search"] = search } };
 }
 
 <div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
@@ -43,11 +44,7 @@
                     <form asp-action="Index" method="get" class="d-flex align-items-center gap-2 flex-wrap">
                         <input type="hidden" name="page" value="1" />
                         <input type="text" name="search" value="@search" class="form-control form-control-solid w-250px" placeholder="Tìm theo tên..." />
-                        <select name="pageSize" class="form-select form-select-solid w-100px" onchange="this.form.submit()">
-                            @if (pageSize == 10) { <option value="10" selected>10</option> } else { <option value="10">10</option> }
-                            @if (pageSize == 20) { <option value="20" selected>20</option> } else { <option value="20">20</option> }
-                            @if (pageSize == 50) { <option value="50" selected>50</option> } else { <option value="50">50</option> }
-                        </select>
+                        <partial name="_PageSizeSelector" model="@(new PaginationViewModel { PageSize = pageSize, PageSizeOptions = new[] { 10, 20, 50 } })" />
                         <button type="submit" class="btn btn-sm btn-light-primary">Tìm kiếm</button>
                     </form>
                 </div>
@@ -89,31 +86,7 @@
                 {
                     <div class="text-center py-10 text-muted">Chưa có Identity Resource nào.</div>
                 }
-                @if (totalCount > 0)
-                {
-                    <div class="d-flex justify-content-between align-items-center mt-5 flex-wrap gap-2">
-                        <div class="text-muted fs-7">Hiển thị @((page - 1) * pageSize + 1)-@(Math.Min(page * pageSize, totalCount)) / @totalCount</div>
-                        @if (totalPages > 1)
-                        {
-                        <nav>
-                            <ul class="pagination pagination-sm mb-0">
-                                <li class="page-item @(page <= 1 ? "disabled" : "")">
-                                    <a class="page-link" asp-action="Index" asp-route-page="@(page - 1)" asp-route-search="@search" asp-route-pageSize="@pageSize">Trước</a>
-                                </li>
-                                @for (var i = Math.Max(1, page - 2); i <= Math.Min(totalPages, page + 2); i++)
-                                {
-                                    <li class="page-item @(i == page ? "active" : "")">
-                                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-search="@search" asp-route-pageSize="@pageSize">@i</a>
-                                    </li>
-                                }
-                                <li class="page-item @(page >= totalPages ? "disabled" : "")">
-                                    <a class="page-link" asp-action="Index" asp-route-page="@(page + 1)" asp-route-search="@search" asp-route-pageSize="@pageSize">Sau</a>
-                                </li>
-                            </ul>
-                        </nav>
-                        }
-                    </div>
-                }
+                <partial name="_Pagination" model="paginationModel" />
             </div>
         </div>
     </div>

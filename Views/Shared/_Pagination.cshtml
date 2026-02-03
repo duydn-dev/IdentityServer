@@ -1,0 +1,46 @@
+@model IdentityServerHost.Models.ViewModels.PaginationViewModel
+@{
+    var page = Model.Page;
+    var pageSize = Model.PageSize;
+    var totalCount = Model.TotalCount;
+    var totalPages = Model.TotalPages;
+    var actionName = Model.ActionName;
+    var controllerName = Model.ControllerName ?? ViewContext.RouteData.Values["controller"]?.ToString();
+}
+
+@if (totalCount > 0)
+{
+    <div class="d-flex justify-content-between align-items-center mt-5 flex-wrap gap-2">
+        <div class="text-muted fs-7">Hiển thị @Model.From-@Model.To / @totalCount</div>
+        @if (totalPages > 1)
+        {
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(page <= 1 ? "disabled" : "")">
+                        @{
+                            var prevRoute = new Dictionary<string, string?>(Model.RouteValues) { ["page"] = (page - 1).ToString(), ["pageSize"] = pageSize.ToString() };
+                        }
+                        <a class="page-link" asp-action="@actionName" asp-controller="@controllerName" asp-all-route-data="prevRoute">Trước</a>
+                    </li>
+                    @{
+                        var startPage = Math.Max(1, page - 2);
+                        var endPage = Math.Min(totalPages, page + 2);
+                    }
+                    @for (var i = startPage; i <= endPage; i++)
+                    {
+                        var pageRoute = new Dictionary<string, string?>(Model.RouteValues) { ["page"] = i.ToString(), ["pageSize"] = pageSize.ToString() };
+                        <li class="page-item @(i == page ? "active" : "")">
+                            <a class="page-link" asp-action="@actionName" asp-controller="@controllerName" asp-all-route-data="pageRoute">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                        @{
+                            var nextRoute = new Dictionary<string, string?>(Model.RouteValues) { ["page"] = (page + 1).ToString(), ["pageSize"] = pageSize.ToString() };
+                        }
+                        <a class="page-link" asp-action="@actionName" asp-controller="@controllerName" asp-all-route-data="nextRoute">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    </div>
+}

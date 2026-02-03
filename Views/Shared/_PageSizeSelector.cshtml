@@ -1,0 +1,7 @@
+@model IdentityServerHost.Models.ViewModels.PaginationViewModel
+<select name="pageSize" class="form-select form-select-solid w-100px" onchange="this.form.submit()">
+    @foreach (var opt in Model.PageSizeOptions)
+    {
+        <option value="@opt" selected="@(Model.PageSize == opt)">@opt</option>
+    }
+</select>

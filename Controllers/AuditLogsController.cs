@@ -16,10 +16,10 @@ public class AuditLogsController : Controller
         _db = db;
     }
 
-    public async Task<IActionResult> Index(int page = 1, int pageSize = 50, string? userId = null, string? action = null, DateTime? from = null, DateTime? to = null)
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 50, string? userId = null, string? actionFilter = null, DateTime? from = null, DateTime? to = null)
     {
         ViewBag.UserId = userId;
-        ViewBag.Action = action;
+        ViewBag.Action = actionFilter;
         ViewBag.From = from;
         ViewBag.To = to;
         ViewBag.Page = page;
@@ -29,8 +29,8 @@ public class AuditLogsController : Controller
 
         if (!string.IsNullOrWhiteSpace(userId))
             query = query.Where(a => a.UserId != null && a.UserId.Contains(userId));
-        if (!string.IsNullOrWhiteSpace(action))
-            query = query.Where(a => a.Action.Contains(action));
+        if (!string.IsNullOrWhiteSpace(actionFilter))
+            query = query.Where(a => a.Action.Contains(actionFilter));
         if (from.HasValue)
             query = query.Where(a => a.Timestamp >= from.Value);
         if (to.HasValue)

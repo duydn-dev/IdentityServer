@@ -9,6 +9,7 @@
     var pageSize = (int)(ViewBag.PageSize ?? 20);
     var totalCount = (int)(ViewBag.TotalCount ?? 0);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var paginationModel = new PaginationViewModel { Page = page, PageSize = pageSize, TotalCount = totalCount, ControllerName = "PersistedGrants", PageSizeOptions = new[] { 20, 50, 100 }, RouteValues = new Dictionary<string, string?> { ["subjectId"] = subjectId, ["clientId"] = clientId, ["type"] = type } };
 }
 
 <div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
@@ -41,11 +42,7 @@
                     <input type="text" name="subjectId" value="@subjectId" class="form-control form-control-solid w-150px" placeholder="Subject ID" />
                     <input type="text" name="clientId" value="@clientId" class="form-control form-control-solid w-150px" placeholder="Client ID" />
                     <input type="text" name="type" value="@type" class="form-control form-control-solid w-120px" placeholder="Type" />
-                    <select name="pageSize" class="form-select form-select-solid w-100px" onchange="this.form.submit()">
-                        @if (pageSize == 20) { <option value="20" selected>20</option> } else { <option value="20">20</option> }
-                        @if (pageSize == 50) { <option value="50" selected>50</option> } else { <option value="50">50</option> }
-                        @if (pageSize == 100) { <option value="100" selected>100</option> } else { <option value="100">100</option> }
-                    </select>
+                    <partial name="_PageSizeSelector" model="@(new PaginationViewModel { PageSize = pageSize, PageSizeOptions = new[] { 20, 50, 100 } })" />
                     <button type="submit" class="btn btn-sm btn-light-primary">Lọc</button>
                 </form>
             </div>
@@ -87,23 +84,7 @@
                 </table>
                 @if (!Model.Any())
                 { <div class="text-center py-10 text-muted">Chưa có token nào.</div> }
-                @if (totalCount > 0)
-                {
-                    <div class="d-flex justify-content-between align-items-center mt-5">
-                        <div class="text-muted fs-7">Hiển thị @((page-1)*pageSize+1)-@(Math.Min(page*pageSize, totalCount)) / @totalCount</div>
-                        @if (totalPages > 1)
-                        {
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item @(page<=1?"disabled":"")"><a class="page-link" asp-action="Index" asp-route-page="@(page-1)" asp-route-subjectId="@subjectId" asp-route-clientId="@clientId" asp-route-type="@type" asp-route-pageSize="@pageSize">Trước</a></li>
-                                    @for (var i = Math.Max(1, page - 2); i <= Math.Min(totalPages, page + 2); i++)
-                                    { <li class="page-item @(i==page?"active":"")"><a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-subjectId="@subjectId" asp-route-clientId="@clientId" asp-route-type="@type" asp-route-pageSize="@pageSize">@i</a></li> }
-                                    <li class="page-item @(page>=totalPages?"disabled":"")"><a class="page-link" asp-action="Index" asp-route-page="@(page+1)" asp-route-subjectId="@subjectId" asp-route-clientId="@clientId" asp-route-type="@type" asp-route-pageSize="@pageSize">Sau</a></li>
-                                </ul>
-                            </nav>
-                        }
-                    </div>
-                }
+                <partial name="_Pagination" model="paginationModel" />
             </div>
         </div>
     </div>
