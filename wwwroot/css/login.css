@@ -1,3 +1,11 @@
 ﻿.bg-auth {
     background-image: url(/assets/media/misc/auth-bg.png)
 }
+.login-wrap{
+    width: 500px;
+}
+@media (max-width: 767.98px) {
+    .login-wrap{
+        width: 100%;
+    }
+}
