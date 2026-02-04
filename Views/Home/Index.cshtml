@@ -35,42 +35,82 @@
     <div id="kt_app_content_container" class="app-container container-fluid">
         <div class="row g-5 gx-xl-10 mb-5 mb-xl-10">
             <div class="col-xl-3 col-md-6">
-                <a asp-controller="Users" asp-action="Index" class="card card-flush h-md-50 mb-5 mb-xl-10 hover-elevate-up text-decoration-none">
+                <a asp-controller="Users" asp-action="Index" class="card card-flush h-100 mb-5 mb-xl-10 hover-elevate-up text-decoration-none">
                     <div class="card-header pt-5">
-                        <div class="card-title d-flex flex-column">
+                        <div class="card-title d-flex align-items-center">
+                            <i class="ki-duotone ki-people fs-2hx text-primary me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                                <span class="path3"></span>
+                                <span class="path4"></span>
+                                <span class="path5"></span>
+                            </i>
+                            <span class="text-gray-500 fw-semibold fs-6">Người dùng</span>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="d-flex flex-column">
                             <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@Model.UsersCount</span>
-                            <span class="text-gray-500 pt-1 fw-semibold fs-6">Người dùng</span>
                         </div>
                     </div>
                 </a>
             </div>
             <div class="col-xl-3 col-md-6">
-                <a asp-controller="Roles" asp-action="Index" class="card card-flush h-md-50 mb-5 mb-xl-10 hover-elevate-up text-decoration-none">
+                <a asp-controller="Roles" asp-action="Index" class="card card-flush h-100 mb-5 mb-xl-10 hover-elevate-up text-decoration-none">
                     <div class="card-header pt-5">
-                        <div class="card-title d-flex flex-column">
+                        <div class="card-title d-flex align-items-center">
+                            <i class="ki-duotone ki-shield-tick fs-2hx text-success me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                                <span class="path3"></span>
+                            </i>
+                            <span class="text-gray-500 fw-semibold fs-6">Vai trò</span>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="d-flex flex-column">
                             <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@Model.RolesCount</span>
-                            <span class="text-gray-500 pt-1 fw-semibold fs-6">Vai trò</span>
                         </div>
                     </div>
                 </a>
             </div>
             <div class="col-xl-3 col-md-6">
-                <a asp-controller="Clients" asp-action="Index" class="card card-flush h-md-50 mb-5 mb-xl-10 hover-elevate-up text-decoration-none">
+                <a asp-controller="Clients" asp-action="Index" class="card card-flush h-100 mb-5 mb-xl-10 hover-elevate-up text-decoration-none">
                     <div class="card-header pt-5">
-                        <div class="card-title d-flex flex-column">
+                        <div class="card-title d-flex align-items-center">
+                            <i class="ki-duotone ki-element-11 fs-2hx text-info me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                                <span class="path3"></span>
+                                <span class="path4"></span>
+                            </i>
+                            <span class="text-gray-500 fw-semibold fs-6">Clients</span>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="d-flex flex-column">
                             <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@Model.ClientsCount</span>
-                            <span class="text-gray-500 pt-1 fw-semibold fs-6">Clients</span>
                             <span class="text-success fs-7">@Model.ActiveClientsCount đang bật</span>
                         </div>
                     </div>
                 </a>
             </div>
             <div class="col-xl-3 col-md-6">
-                <div class="card card-flush h-md-50 mb-5 mb-xl-10">
+                <div class="card card-flush h-100 mb-5 mb-xl-10">
                     <div class="card-header pt-5">
-                        <div class="card-title d-flex flex-column">
+                        <div class="card-title d-flex align-items-center">
+                            <i class="ki-duotone ki-key fs-2hx text-warning me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                                <span class="path3"></span>
+                                <span class="path4"></span>
+                            </i>
+                            <span class="text-gray-500 fw-semibold fs-6">Tokens đang lưu</span>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="d-flex flex-column">
                             <span class="fs-2hx fw-bold text-gray-900 me-2 lh-1 ls-n2">@Model.PersistedGrantsCount</span>
-                            <span class="text-gray-500 pt-1 fw-semibold fs-6">Tokens đang lưu</span>
                         </div>
                     </div>
                 </div>
@@ -79,15 +119,23 @@
 
         <div class="row g-5 gx-xl-10 mb-5">
             <div class="col-12">
-                <a asp-controller="Alerts" asp-action="Index" class="card card-flush h-md-50 hover-elevate-up text-decoration-none">
+                <a asp-controller="Alerts" asp-action="Index" class="card card-flush hover-elevate-up text-decoration-none">
                     <div class="card-header pt-5">
-                        <div class="card-title d-flex flex-column">
+                        <div class="card-title d-flex align-items-center">
+                            <i class="ki-duotone ki-notification-bing fs-2hx text-danger me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                                <span class="path3"></span>
+                                <span class="path4"></span>
+                            </i>
                             <span class="fs-4 fw-bold text-gray-900 me-2">Giám sát & Cảnh báo</span>
-                            <span class="text-gray-500 pt-1 fw-semibold fs-7">Sự kiện đăng nhập thất bại, lỗi hệ thống</span>
                         </div>
                         <div class="card-toolbar">
                             <span class="badge badge-light-warning">Xem chi tiết</span>
                         </div>
+                    </div>
+                    <div class="card-body pt-0">
+                        <span class="text-gray-500 fw-semibold fs-7">Sự kiện đăng nhập thất bại, lỗi hệ thống</span>
                     </div>
                 </a>
             </div>

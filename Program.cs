@@ -184,6 +184,20 @@ try
         try
         {
             var auditDb = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
+            
+            // Try to insert migration record if it doesn't exist (for cases where table exists but migration record is missing)
+            try
+            {
+                await auditDb.Database.ExecuteSqlRawAsync(
+                    @"INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") 
+                      VALUES ('20260203000000_InitialAuditDb', '9.0.0') 
+                      ON CONFLICT (""MigrationId"") DO NOTHING;");
+            }
+            catch
+            {
+                // Migration history table might not exist yet, which is fine - MigrateAsync will create it
+            }
+            
             await auditDb.Database.MigrateAsync();
         }
         catch (Exception ex)

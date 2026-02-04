@@ -15,6 +15,7 @@ public class AuditDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Action).HasMaxLength(200);
+            e.Property(x => x.UserId).HasMaxLength(450);
             e.Property(x => x.EntityType).HasMaxLength(100);
             e.Property(x => x.EntityId).HasMaxLength(200);
             e.Property(x => x.IpAddress).HasMaxLength(50);
