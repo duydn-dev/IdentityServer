@@ -91,6 +91,13 @@
                                 </td>
                                 <td>@string.Join(", ", client.AllowedGrantTypes?.Select(g => g.GrantType) ?? Array.Empty<string>())</td>
                                 <td class="text-end">
+                                    <a asp-controller="ClientKeys" asp-action="Generate" asp-route-clientId="@client.Id" 
+                                       class="btn btn-sm btn-light-warning" title="Tạo API Key">
+                                        <i class="ki-duotone ki-key fs-5">
+                                            <span class="path1"></span>
+                                            <span class="path2"></span>
+                                        </i>
+                                    </a>
                                     <a asp-action="Edit" asp-route-id="@client.Id" class="btn btn-sm btn-light btn-active-light-primary">Sửa</a>
                                     @if (!client.NonEditable)
                                     {

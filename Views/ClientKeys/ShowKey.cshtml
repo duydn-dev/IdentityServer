@@ -1,0 +1,170 @@
+@{
+    ViewData["Title"] = "Key Pair đã tạo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var privateKey = ViewBag.PrivateKey as string;
+    var publicKey = ViewBag.PublicKey as string;
+    var clientId = ViewBag.ClientId as string;
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">RSA Key Pair</h1>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        <div class="alert alert-danger d-flex align-items-center p-5 mb-10">
+            <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4">
+                <span class="path1"></span>
+                <span class="path2"></span>
+                <span class="path3"></span>
+            </i>
+            <div class="d-flex flex-column">
+                <h4 class="mb-1 text-danger">Cảnh báo bảo mật!</h4>
+                <span>
+                    <strong>Private Key chỉ được hiển thị MỘT LẦN DUY NHẤT.</strong><br/>
+                    Hãy sao chép và lưu trữ an toàn ngay bây giờ. Sau khi rời khỏi trang này, bạn sẽ KHÔNG thể xem lại Private Key!
+                </span>
+            </div>
+        </div>
+
+        <div class="card card-flush mb-10">
+            <div class="card-header">
+                <div class="card-title">
+                    <h2>Client: <span class="text-primary">@clientId</span></h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-10">
+                    <label class="form-label fw-bold fs-5">
+                        <i class="ki-duotone ki-lock fs-3 text-danger me-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                            <span class="path3"></span>
+                        </i>
+                        Private Key (PKCS#8 - Base64)
+                    </label>
+                    <div class="position-relative">
+                        <textarea id="privateKey" class="form-control form-control-solid font-monospace" rows="8" readonly>@privateKey</textarea>
+                        <button type="button" class="btn btn-sm btn-light-primary position-absolute top-0 end-0 m-2" onclick="copyToClipboard('privateKey')">
+                            <i class="ki-duotone ki-copy fs-4"></i> Copy
+                        </button>
+                    </div>
+                    <div class="form-text text-danger">⚠️ Giữ bí mật! Không chia sẻ với bất kỳ ai.</div>
+                </div>
+
+                <div class="mb-5">
+                    <label class="form-label fw-bold fs-5">
+                        <i class="ki-duotone ki-key fs-3 text-success me-2">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        Public Key (RSA - Base64)
+                    </label>
+                    <div class="position-relative">
+                        <textarea id="publicKey" class="form-control form-control-solid font-monospace" rows="5" readonly>@publicKey</textarea>
+                        <button type="button" class="btn btn-sm btn-light-primary position-absolute top-0 end-0 m-2" onclick="copyToClipboard('publicKey')">
+                            <i class="ki-duotone ki-copy fs-4"></i> Copy
+                        </button>
+                    </div>
+                    <div class="form-text">Public key được lưu trên server để xác thực signature.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-flush">
+            <div class="card-header">
+                <div class="card-title">
+                    <h2>Hướng dẫn sử dụng</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <p>Để gọi API, client cần gửi các headers sau:</p>
+                <ul class="list-group list-group-flush mb-5">
+                    <li class="list-group-item d-flex align-items-center">
+                        <code class="badge badge-light-primary me-3">X-Client-Id</code>
+                        <span>ClientId của bạn: <strong>@clientId</strong></span>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center">
+                        <code class="badge badge-light-primary me-3">X-Timestamp</code>
+                        <span>Unix timestamp (milliseconds)</span>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center">
+                        <code class="badge badge-light-primary me-3">X-Nonce</code>
+                        <span>Random string (để chống replay attack)</span>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center">
+                        <code class="badge badge-light-primary me-3">X-Signature</code>
+                        <span>RSA-SHA256 signature của: <code>timestamp + nonce + body</code></span>
+                    </li>
+                </ul>
+
+                <h4 class="mb-3">Ví dụ code C#:</h4>
+                <pre class="bg-light p-4 rounded"><code>using System.Security.Cryptography;
+using System.Text;
+
+// Load private key
+var privateKeyBase64 = "YOUR_PRIVATE_KEY_HERE";
+var privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
+
+using var rsa = RSA.Create();
+rsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+
+// Tạo signature
+var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+var nonce = Guid.NewGuid().ToString("N");
+var body = "{\"email\":\"user@@example.com\",\"password\":\"Pass123!\"}";
+
+var payload = timestamp + nonce + body;
+var payloadBytes = Encoding.UTF8.GetBytes(payload);
+var signature = rsa.SignData(payloadBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+var signatureBase64 = Convert.ToBase64String(signature);
+
+// Gọi API
+using var client = new HttpClient();
+client.DefaultRequestHeaders.Add("X-Client-Id", "@clientId");
+client.DefaultRequestHeaders.Add("X-Timestamp", timestamp);
+client.DefaultRequestHeaders.Add("X-Nonce", nonce);
+client.DefaultRequestHeaders.Add("X-Signature", signatureBase64);
+
+var response = await client.PostAsync(
+    "https://your-server/api/external/users",
+    new StringContent(body, Encoding.UTF8, "application/json"));</code></pre>
+
+                <div class="d-flex justify-content-end mt-5">
+                    <a asp-controller="ClientKeys" asp-action="Index" class="btn btn-primary">
+                        <i class="ki-duotone ki-check fs-2 me-2"></i>
+                        Hoàn tất
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+<script>
+function copyToClipboard(elementId) {
+    var element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    
+    // Toast notification
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Đã sao chép!',
+            showConfirmButton: false,
+            timer: 1500
+        });
+    } else {
+        alert('Đã sao chép!');
+    }
+}
+</script>
+}

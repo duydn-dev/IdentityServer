@@ -1,3 +1,5 @@
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Operational;
 using Microsoft.AspNetCore.Authorization;
@@ -5,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class PersistedGrantsController : Controller
 {

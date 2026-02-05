@@ -66,5 +66,14 @@ public class HomeController : Controller
             }
 
             return View("Error", vm);
-    }
+        }
+
+        /// <summary>
+        /// Access Denied page - hiển thị khi user không có quyền truy cập
+        /// </summary>
+        [AllowAnonymous]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
 }

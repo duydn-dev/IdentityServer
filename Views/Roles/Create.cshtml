@@ -33,13 +33,13 @@
                 <form asp-action="Create" method="post">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-5"></div>
                     <div class="mb-5">
+                        <label asp-for="Code" class="form-label required"></label>
+                        <input asp-for="Code" class="form-control form-control-solid" placeholder="Nhập mã vai trò" />
+                    </div>
+                    <div class="mb-5">
                         <label asp-for="Name" class="form-label required"></label>
                         <input asp-for="Name" class="form-control form-control-solid" placeholder="Nhập tên vai trò" />
                         <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>
-                    <div class="mb-5">
-                        <label asp-for="Code" class="form-label"></label>
-                        <input asp-for="Code" class="form-control form-control-solid" placeholder="Nhập mã (tùy chọn)" />
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Lưu</button>

@@ -25,11 +25,14 @@ using IdentityServerHost.Services.Ldap;
 using IdentityServerHost.Services.Alerting;
 using IdentityServerHost.Services.Operational;
 using IdentityServerHost.Services.Sessions;
+using IdentityServerHost.Services.ClientKeys;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using StackExchange.Redis;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 Console.Title = "DTI Identity Server";
@@ -98,8 +101,49 @@ try
     builder.Services.AddSingleton<IAlertService, AlertService>();
     builder.Services.AddTransient<IEventSink, IdentityServerEventSink>();
 
-    // Rate Limiting: Add package Microsoft.AspNetCore.RateLimiting hoặc dùng .NET 9 SDK có sẵn
-    // builder.Services.AddRateLimiting(options => { ... });
+    // Rate Limiting
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        
+        // Global policy: 100 requests per minute per IP
+        options.AddPolicy("fixed", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 5
+                }));
+
+        // Strict policy for login/auth endpoints: 10 requests per minute
+        options.AddPolicy("auth", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 2
+                }));
+
+        // API policy: 50 requests per minute
+        options.AddPolicy("api", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Request.Headers["X-Client-Id"].FirstOrDefault() 
+                              ?? context.Connection.RemoteIpAddress?.ToString() 
+                              ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 50,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 10
+                }));
+    });
 
     var healthChecks = builder.Services.AddHealthChecks()
         .AddNpgSql(connectionString, name: "database")
@@ -116,6 +160,7 @@ try
     builder.Services.AddScoped<IApiResourceConfigService, ApiResourceConfigService>();
     builder.Services.AddScoped<IApiScopeConfigService, ApiScopeConfigService>();
     builder.Services.AddScoped<IIdentityResourceConfigService, IdentityResourceConfigService>();
+    builder.Services.AddScoped<IClientKeyService, ClientKeyService>();
     builder.Services.AddScoped<IStatsService, StatsService>();
 
     builder.Services.AddOpenTelemetry()
@@ -173,7 +218,7 @@ try
     app.UseRouting();
 
     app.UseIpWhitelist();
-    // app.UseRateLimiting(); // Bật lại khi có AddRateLimiting
+    app.UseRateLimiter(); // Bật lại khi có AddRateLimiting
     app.ConfigureCspAllowHeaders();
 
     app.MapHealthChecks("/health");
@@ -181,6 +226,33 @@ try
     // Migrations & Seed
     using (var scope = app.Services.CreateScope())
     {
+        // ApplicationDbContext migrations
+        try
+        {
+            var appDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            
+            // Insert migration record for InitialIdentity if tables exist but migration record is missing
+            try
+            {
+                await appDb.Database.ExecuteSqlRawAsync(
+                    @"INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") 
+                      VALUES ('20260202113116_InitialIdentity', '9.0.0') 
+                      ON CONFLICT (""MigrationId"") DO NOTHING;");
+            }
+            catch
+            {
+                // Migration history table might not exist yet
+            }
+            
+            await appDb.Database.MigrateAsync();
+            Log.Information("ApplicationDbContext migrations applied successfully.");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "ApplicationDbContext migration failed.");
+        }
+
+        // AuditDbContext migrations
         try
         {
             var auditDb = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
@@ -199,6 +271,7 @@ try
             }
             
             await auditDb.Database.MigrateAsync();
+            Log.Information("AuditDbContext migrations applied successfully.");
         }
         catch (Exception ex)
         {

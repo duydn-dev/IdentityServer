@@ -108,6 +108,13 @@ public class ExternalController : Controller
             var additionalLocalClaims = new List<Claim>();
             var localSignInProps = new AuthenticationProperties();
             ProcessLoginCallback(result, additionalLocalClaims, localSignInProps);
+
+            // Thêm role claims
+            var roles = await _userManager.GetRolesAsync(user);
+            foreach (var role in roles)
+            {
+                additionalLocalClaims.Add(new Claim(JwtClaimTypes.Role, role));
+            }
             
             // issue authentication cookie for user
             var isuser = new IdentityServerUser(user.Id.ToString())

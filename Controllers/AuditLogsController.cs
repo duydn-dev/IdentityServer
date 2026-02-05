@@ -1,3 +1,5 @@
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class AuditLogsController : Controller
 {

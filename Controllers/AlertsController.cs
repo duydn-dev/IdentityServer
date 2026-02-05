@@ -1,10 +1,12 @@
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Services.Alerting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class AlertsController : Controller
 {

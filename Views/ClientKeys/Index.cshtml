@@ -1,0 +1,177 @@
+@model IEnumerable<IdentityServerHost.Models.ClientKeyPair>
+@{
+    ViewData["Title"] = "Quản lý Client Keys";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Client Keys</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted">
+                    <a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Dashboard</a>
+                </li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">Client Keys</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success d-flex align-items-center p-5 mb-5">
+                <i class="ki-duotone ki-shield-tick fs-2hx text-success me-4">
+                    <span class="path1"></span>
+                    <span class="path2"></span>
+                </i>
+                <div class="d-flex flex-column">
+                    <span>@TempData["Success"]</span>
+                </div>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger d-flex align-items-center p-5 mb-5">
+                <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4">
+                    <span class="path1"></span>
+                    <span class="path2"></span>
+                    <span class="path3"></span>
+                </i>
+                <div class="d-flex flex-column">
+                    <span>@TempData["Error"]</span>
+                </div>
+            </div>
+        }
+
+        <div class="card card-flush">
+            <div class="card-header border-0 pt-6">
+                <div class="card-title">
+                    <div class="d-flex align-items-center position-relative my-1">
+                        <i class="ki-duotone ki-key fs-3 position-absolute ms-5">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        <span class="fs-5 fw-semibold text-gray-600 ms-13">RSA Key Pairs cho API Authentication</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-10">
+                        <i class="ki-duotone ki-key fs-5tx text-gray-300 mb-5">
+                            <span class="path1"></span>
+                            <span class="path2"></span>
+                        </i>
+                        <p class="text-gray-600 fs-5">Chưa có key nào được tạo.</p>
+                        <p class="text-muted">Vào trang quản lý Clients để tạo key cho client.</p>
+                        <a asp-controller="Clients" asp-action="Index" class="btn btn-primary mt-3">
+                            <i class="ki-duotone ki-setting-2 fs-2 me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                            </i>
+                            Quản lý Clients
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <table class="table align-middle table-row-dashed fs-6 gy-5" id="kt_table_keys">
+                        <thead>
+                            <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
+                                <th class="min-w-125px">Client ID</th>
+                                <th class="min-w-100px">Key Size</th>
+                                <th class="min-w-125px">Ngày tạo</th>
+                                <th class="min-w-125px">Hết hạn</th>
+                                <th class="min-w-80px">Trạng thái</th>
+                                <th class="text-end min-w-100px">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-600 fw-semibold">
+                            @foreach (var key in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge badge-light-primary fs-7 fw-bold">@key.ClientId</span>
+                                    </td>
+                                    <td>@key.KeySize bit</td>
+                                    <td>@key.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        @if (key.ExpiresAt.HasValue)
+                                        {
+                                            var isExpired = key.ExpiresAt.Value < DateTime.UtcNow;
+                                            <span class="badge badge-light-@(isExpired ? "danger" : "warning")">
+                                                @key.ExpiresAt.Value.ToString("dd/MM/yyyy")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Không hết hạn</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (key.IsActive)
+                                        {
+                                            <span class="badge badge-light-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-light-danger">Inactive</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            @if (key.IsActive)
+                                            {
+                                                <form asp-action="Deactivate" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="clientId" value="@key.ClientId" />
+                                                    <button type="submit" class="btn btn-sm btn-light-warning" 
+                                                            onclick="return confirm('Vô hiệu hóa key này?')">
+                                                        <i class="ki-duotone ki-lock fs-5">
+                                                            <span class="path1"></span>
+                                                            <span class="path2"></span>
+                                                            <span class="path3"></span>
+                                                        </i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            <form asp-action="RefreshCache" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="clientId" value="@key.ClientId" />
+                                                <button type="submit" class="btn btn-sm btn-light-info" title="Refresh Cache">
+                                                    <i class="ki-duotone ki-arrows-circle fs-5">
+                                                        <span class="path1"></span>
+                                                        <span class="path2"></span>
+                                                    </i>
+                                                </button>
+                                            </form>
+                                            <form asp-action="Delete" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="clientId" value="@key.ClientId" />
+                                                <button type="submit" class="btn btn-sm btn-light-danger"
+                                                        onclick="return confirm('Xóa key này? Hành động này không thể hoàn tác!')">
+                                                    <i class="ki-duotone ki-trash fs-5">
+                                                        <span class="path1"></span>
+                                                        <span class="path2"></span>
+                                                        <span class="path3"></span>
+                                                        <span class="path4"></span>
+                                                        <span class="path5"></span>
+                                                    </i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>

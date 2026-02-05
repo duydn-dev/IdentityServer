@@ -25,11 +25,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityS
     {
     }
 
+    /// <summary>
+    /// RSA Key Pairs cho các Client
+    /// </summary>
+    public DbSet<ClientKeyPair> ClientKeyPairs => Set<ClientKeyPair>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-        // Customize the ASP.NET Identity model and override the defaults if needed.
-        // For example, you can rename the ASP.NET Identity table names and more.
-        // Add your customizations after calling base.OnModelCreating(builder);
+        
+        // ClientKeyPair configuration
+        builder.Entity<ClientKeyPair>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.ClientId).IsUnique();
+            e.Property(x => x.ClientId).HasMaxLength(200);
+            e.Property(x => x.PrivateKey).IsRequired();
+            e.Property(x => x.PublicKey).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+        });
     }
 }

@@ -12,10 +12,14 @@
  copies or substantial portions of the Software.
 */
 
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
+using Microsoft.AspNetCore.Authorization;
+
 namespace IdentityServerHost.Quickstart.UI;
 
 [SecurityHeaders]
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 public class DiagnosticsController : Controller
 {
         public async Task<IActionResult> Index()

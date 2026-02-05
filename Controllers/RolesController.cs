@@ -1,3 +1,5 @@
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Models;
 using IdentityServerHost.Models.ViewModels;
 using IdentityServerHost.Services.Audit;
@@ -7,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class RolesController : Controller
 {
@@ -50,7 +52,7 @@ public class RolesController : Controller
             {
                 Id = Guid.NewGuid(),
                 Name = model.Name,
-                NormalizedName = model.Name?.ToUpperInvariant(),
+                NormalizedName = model.Code,
                 Code = model.Code,
                 ConcurrencyStamp = Guid.NewGuid().ToString()
             };
@@ -101,7 +103,7 @@ public class RolesController : Controller
                 return NotFound();
 
             role.Name = model.Name;
-            role.NormalizedName = model.Name?.ToUpperInvariant();
+            role.NormalizedName = model.Code;
             role.Code = model.Code;
 
             var (success, errors) = await _roleService.UpdateAsync(role);

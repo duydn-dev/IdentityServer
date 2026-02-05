@@ -1,0 +1,95 @@
+@using IdentityServerHost.Controllers
+@model GenerateKeyViewModel
+@{
+    ViewData["Title"] = "Tạo Key Pair";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var client = ViewBag.Client as IdentityServer4.EntityFramework.Entities.Client;
+}
+
+<div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-6">
+    <div id="kt_app_toolbar_container" class="app-container container-fluid d-flex flex-stack">
+        <div class="page-title d-flex flex-column justify-content-center flex-wrap me-3">
+            <h1 class="page-heading d-flex text-gray-900 fw-bold fs-3 flex-column justify-content-center my-0">Tạo RSA Key Pair</h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 my-0 pt-1">
+                <li class="breadcrumb-item text-muted">
+                    <a asp-controller="Home" asp-action="Index" class="text-muted text-hover-primary">Dashboard</a>
+                </li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">
+                    <a asp-controller="Clients" asp-action="Index" class="text-muted text-hover-primary">Clients</a>
+                </li>
+                <li class="breadcrumb-item"><span class="bullet bg-gray-500 w-5px h-2px"></span></li>
+                <li class="breadcrumb-item text-muted">Tạo Key</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="kt_app_content" class="app-content flex-column-fluid">
+    <div id="kt_app_content_container" class="app-container container-fluid">
+        <div class="card card-flush">
+            <div class="card-header">
+                <div class="card-title">
+                    <h2>Tạo RSA Key Pair cho Client: @client?.ClientName (@Model.ClientId)</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning d-flex align-items-center p-5 mb-10">
+                    <i class="ki-duotone ki-information-5 fs-2hx text-warning me-4">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                        <span class="path3"></span>
+                    </i>
+                    <div class="d-flex flex-column">
+                        <h4 class="mb-1 text-warning">Lưu ý quan trọng</h4>
+                        <span>Private Key chỉ được hiển thị MỘT LẦN sau khi tạo. Hãy lưu lại cẩn thận!</span>
+                    </div>
+                </div>
+
+                <form asp-action="Generate" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ClientId" />
+
+                    <div class="row mb-7">
+                        <label class="col-lg-3 col-form-label fw-semibold fs-6">Key Size</label>
+                        <div class="col-lg-9">
+                            <select asp-for="KeySize" class="form-select form-select-solid">
+                                <option value="2048">2048 bit (Recommended)</option>
+                                <option value="3072">3072 bit</option>
+                                <option value="4096">4096 bit (Strongest)</option>
+                            </select>
+                            <div class="form-text">Key size lớn hơn = bảo mật hơn nhưng chậm hơn</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-7">
+                        <label class="col-lg-3 col-form-label fw-semibold fs-6">Ngày hết hạn</label>
+                        <div class="col-lg-9">
+                            <input type="date" asp-for="ExpiresAt" class="form-control form-control-solid" />
+                            <div class="form-text">Để trống nếu không muốn key hết hạn</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-7">
+                        <label class="col-lg-3 col-form-label fw-semibold fs-6">Mô tả</label>
+                        <div class="col-lg-9">
+                            <textarea asp-for="Description" class="form-control form-control-solid" rows="3" 
+                                      placeholder="Ghi chú về mục đích sử dụng key..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <a asp-controller="Clients" asp-action="Index" class="btn btn-light me-3">Hủy</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ki-duotone ki-key fs-2 me-2">
+                                <span class="path1"></span>
+                                <span class="path2"></span>
+                            </i>
+                            Tạo Key Pair
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -17,7 +17,14 @@ namespace IdentityServerHost.SeedDatas
             {
                 var context = scope.ServiceProvider.GetService<ApplicationDbContext>();
                 if (context is null) throw new Exception("ApplicationDbContext is null");
-                await context.Database.MigrateAsync();
+                try
+                {
+                    await context.Database.MigrateAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
 
                 var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<IdentityServerHost.Models.ApplicationUser>>();
                 var alice = await userMgr.FindByNameAsync("admin");

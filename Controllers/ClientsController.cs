@@ -1,6 +1,9 @@
 using IdentityServer4.EntityFramework.Entities;
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Models.ViewModels.Configuration;
 using IdentityServerHost.Services.Audit;
+using IdentityServerHost.Services.ClientKeys;
 using IdentityServerHost.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,13 +11,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class ClientsController : Controller
 {
     private readonly IClientConfigService _clientService;
     private readonly IApiScopeConfigService _apiScopeService;
     private readonly IIdentityResourceConfigService _identityResourceService;
+    private readonly IClientKeyService _clientKeyService;
     private readonly IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext _configDb;
     private readonly IAuditService _auditService;
 
@@ -22,12 +26,14 @@ public class ClientsController : Controller
         IClientConfigService clientService,
         IApiScopeConfigService apiScopeService,
         IIdentityResourceConfigService identityResourceService,
+        IClientKeyService clientKeyService,
         IdentityServer4.EntityFramework.DbContexts.ConfigurationDbContext configDb,
         IAuditService auditService)
     {
         _clientService = clientService;
         _apiScopeService = apiScopeService;
         _identityResourceService = identityResourceService;
+        _clientKeyService = clientKeyService;
         _configDb = configDb;
         _auditService = auditService;
     }
@@ -77,9 +83,20 @@ public class ClientsController : Controller
 
             if (await _clientService.CreateAsync(client))
             {
-                await _auditService.LogAsync("Client.Create", "Client", client.ClientId, $"ClientName={model.ClientName}", true);
-                TempData["Success"] = "Thêm client thành công.";
-                return RedirectToAction(nameof(Index));
+                // Tự động tạo RSA key pair cho client mới
+                var keyPair = await _clientKeyService.GenerateKeyPairAsync(
+                    client.ClientId,
+                    keySize: 2048,
+                    description: $"Auto-generated for client: {model.ClientName}");
+
+                await _auditService.LogAsync("Client.Create", "Client", client.ClientId, $"ClientName={model.ClientName}, KeyGenerated=true", true);
+                
+                TempData["Success"] = "Thêm client thành công. RSA Key Pair đã được tạo tự động.";
+                TempData["NewClientId"] = client.ClientId;
+                TempData["PrivateKey"] = keyPair.PrivateKey;
+                TempData["PublicKey"] = keyPair.PublicKey;
+                
+                return RedirectToAction(nameof(ShowNewClientKey));
             }
             ModelState.AddModelError(string.Empty, "Client ID đã tồn tại.");
         }
@@ -135,6 +152,27 @@ public class ClientsController : Controller
         return View(model);
     }
 
+    /// <summary>
+    /// Hiển thị key sau khi tạo client mới
+    /// </summary>
+    public IActionResult ShowNewClientKey()
+    {
+        var clientId = TempData["NewClientId"] as string;
+        var privateKey = TempData["PrivateKey"] as string;
+        var publicKey = TempData["PublicKey"] as string;
+
+        if (string.IsNullOrEmpty(privateKey))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        ViewBag.ClientId = clientId;
+        ViewBag.PrivateKey = privateKey;
+        ViewBag.PublicKey = publicKey;
+
+        return View();
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -142,8 +180,14 @@ public class ClientsController : Controller
         var clientBeforeDelete = await _clientService.GetByIdAsync(id);
         if (await _clientService.DeleteAsync(id))
         {
-            await _auditService.LogAsync("Client.Delete", "Client", clientBeforeDelete?.ClientId ?? id.ToString(), null, true);
-            TempData["Success"] = "Xóa client thành công.";
+            // Xóa key pair của client
+            if (clientBeforeDelete?.ClientId != null)
+            {
+                await _clientKeyService.DeleteAsync(clientBeforeDelete.ClientId);
+            }
+
+            await _auditService.LogAsync("Client.Delete", "Client", clientBeforeDelete?.ClientId ?? id.ToString(), "KeyDeleted=true", true);
+            TempData["Success"] = "Xóa client và key pair thành công.";
             return RedirectToAction(nameof(Index));
         }
         TempData["Error"] = "Không thể xóa client.";
@@ -155,7 +199,15 @@ public class ClientsController : Controller
     {
         var clientBeforeDelete = await _clientService.GetByIdAsync(id);
         var success = await _clientService.DeleteAsync(id);
-        if (success) await _auditService.LogAsync("Client.Delete", "Client", clientBeforeDelete?.ClientId ?? id.ToString(), null, true);
+        if (success)
+        {
+            // Xóa key pair của client
+            if (clientBeforeDelete?.ClientId != null)
+            {
+                await _clientKeyService.DeleteAsync(clientBeforeDelete.ClientId);
+            }
+            await _auditService.LogAsync("Client.Delete", "Client", clientBeforeDelete?.ClientId ?? id.ToString(), "KeyDeleted=true", true);
+        }
         return Json(new { success, message = success ? "Xóa thành công." : "Không thể xóa." });
     }
 

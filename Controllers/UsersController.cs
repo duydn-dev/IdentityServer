@@ -1,3 +1,5 @@
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Models;
 using IdentityServerHost.Models.ViewModels;
 using IdentityServerHost.Services.Audit;
@@ -7,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class UsersController : Controller
 {

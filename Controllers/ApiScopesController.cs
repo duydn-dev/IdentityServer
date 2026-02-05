@@ -1,4 +1,6 @@
 using IdentityServer4.EntityFramework.Entities;
+using IdentityServerHost.Attributes;
+using IdentityServerHost.Constants;
 using IdentityServerHost.Models.ViewModels.Configuration;
 using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Configuration;
@@ -7,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityServerHost.Controllers;
 
-[Authorize]
+[Authorize(Roles = Roles.Admin)]
 [SecurityHeaders]
 public class ApiScopesController : Controller
 {

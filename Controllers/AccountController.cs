@@ -12,9 +12,11 @@
  copies or substantial portions of the Software.
 */
 
+using IdentityServerHost.Data;
 using IdentityServerHost.Models;
 using IdentityServerHost.Services.Audit;
 using IdentityServerHost.Services.Ldap;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace IdentityServerHost.Quickstart.UI;
@@ -30,6 +32,7 @@ public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ApplicationDbContext _appContext;
     private readonly IIdentityServerInteractionService _interaction;
     private readonly IClientStore _clientStore;
     private readonly IAuthenticationSchemeProvider _schemeProvider;
@@ -41,6 +44,7 @@ public class AccountController : Controller
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
+        ApplicationDbContext appContext,
         IIdentityServerInteractionService interaction,
         IClientStore clientStore,
         IAuthenticationSchemeProvider schemeProvider,
@@ -51,6 +55,7 @@ public class AccountController : Controller
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _appContext = appContext;
         _interaction = interaction;
         _clientStore = clientStore;
         _schemeProvider = schemeProvider;
@@ -161,9 +166,19 @@ public class AccountController : Controller
                     };
                 }
 
+                // Lấy roles của user để thêm vào claims
+                var roles = await _appContext.UserRoles.Where(ur => ur.UserId == user.Id).AsNoTracking()
+                    .Join(_appContext.Roles.AsNoTracking(),
+                    l => l.RoleId,
+                    r => r.Id,
+                    (l, r) => r.NormalizedName).ToListAsync();
+
+                var roleClaims = roles.Select(r => new Claim(JwtClaimTypes.Role, r ?? "")).ToList();
+
                 var isuser = new IdentityServerUser(user.Id.ToString())
                 {
-                    DisplayName = user.UserName
+                    DisplayName = user.UserName,
+                    AdditionalClaims = roleClaims
                 };
 
                 await HttpContext.SignInAsync(isuser, props);
@@ -339,7 +354,15 @@ public class AccountController : Controller
                     ExpiresUtc = DateTimeOffset.UtcNow.Add(AccountOptions.RememberMeLoginDuration)
                 };
             }
-            var isuser = new IdentityServerUser(user.Id.ToString()) { DisplayName = user.UserName };
+            // Lấy roles của user để thêm vào claims
+            var roles = await _userManager.GetRolesAsync(user);
+            var roleClaims = roles.Select(r => new Claim(JwtClaimTypes.Role, r)).ToList();
+
+            var isuser = new IdentityServerUser(user.Id.ToString()) 
+            { 
+                DisplayName = user.UserName,
+                AdditionalClaims = roleClaims
+            };
             await HttpContext.SignInAsync(isuser, props);
 
             return model.ReturnUrl.IsAllowedRedirect() ? Redirect(model.ReturnUrl.SanitizeForRedirect()) : Redirect("~/");
@@ -379,7 +402,15 @@ public class AccountController : Controller
             await _events.RaiseAsync(new UserLoginSuccessEvent(user.UserName!, user.Id.ToString(), user.UserName!));
             await _auditService.LogAsync("Login.Success", "User", user.Id.ToString(), $"UserName={user.UserName} (Recovery)", true);
 
-            var isuser = new IdentityServerUser(user.Id.ToString()) { DisplayName = user.UserName };
+            // Lấy roles của user để thêm vào claims
+            var roles = await _userManager.GetRolesAsync(user);
+            var roleClaims = roles.Select(r => new Claim(JwtClaimTypes.Role, r)).ToList();
+
+            var isuser = new IdentityServerUser(user.Id.ToString()) 
+            { 
+                DisplayName = user.UserName,
+                AdditionalClaims = roleClaims
+            };
             await HttpContext.SignInAsync(isuser);
 
             return model.ReturnUrl.IsAllowedRedirect() ? Redirect(model.ReturnUrl.SanitizeForRedirect()) : Redirect("~/");
